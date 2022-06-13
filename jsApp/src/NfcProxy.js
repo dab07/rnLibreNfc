@@ -50,7 +50,7 @@ class NfcProxy {
       tag = await NfcManager.getTag();
       tag.ndefStatus = await NfcManager.ndefHandler.getNdefStatus();
     } catch (ex) {
-      console.warn(ex);
+      console.error("[readTag] Error: ", ex);
     }
 
     this.abort();
