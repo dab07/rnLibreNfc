@@ -1,9 +1,10 @@
 import * as React from 'react';
-import {Platform, UIManager} from 'react-native';
+import {Platform, UIManager, View} from 'react-native';
 import NfcScanAndroid from './Components/NfcScanAndroid';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {Provider as PaperProvider, DefaultTheme} from 'react-native-paper';
 import AppNavigator from './AppNavigator';
+import { checkOrCreateExternalStorageFolder, checkOrGetExternalStorageWritePermissions } from "./Utils/getPerimissions";
 
 const CustomDefaultTheme = {
   ...DefaultTheme,
@@ -35,6 +36,8 @@ class App extends React.Component {
     ) {
       UIManager.setLayoutAnimationEnabledExperimental(true);
     }
+    checkOrGetExternalStorageWritePermissions();
+    checkOrCreateExternalStorageFolder();
   }
 
   render() {
