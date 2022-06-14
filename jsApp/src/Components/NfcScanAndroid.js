@@ -11,7 +11,9 @@ import PopupModal from './PopupModal';
 
 class NfcScanAndroid extends React.Component {
   componentDidMount() {
+    console.log("[NfcScanAndroid]: Class=componentDidMount");
     AppEvents.get(AppEventName.NFC_SCAN_UI).subscribe(event => {
+      console.log("NfcScanAndroid] event");
       if (!this._popup) {
         console.warn('NO POPUP!!');
         return;
@@ -27,7 +29,7 @@ class NfcScanAndroid extends React.Component {
 
   render() {
     return (
-      <PopupModal 
+      <PopupModal
         ref={ref => (this._popup = ref)}
         popupStyle={{height: 300}}
       >
@@ -35,7 +37,7 @@ class NfcScanAndroid extends React.Component {
           <Logo source={require('../../images/nfc-512.png')} />
 
           <Text style={{fontSize: 20, marginBottom: 10}}>
-            Please tap your NFC tag 
+            Please tap your NFC tag
           </Text>
 
           <TouchableOpacity

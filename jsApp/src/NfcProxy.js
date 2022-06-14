@@ -17,10 +17,10 @@ class NfcProxy {
       NfcManager.setEventListener(NfcEvents.SessionClosed, null);
     };
 
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       let tagFound = null;
 
-      NfcManager.setEventListener(NfcEvents.DiscoverTag, (tag) => {
+      NfcManager.setEventListener(NfcEvents.DiscoverTag, tag => {
         tagFound = tag;
         resolve(tagFound);
         NfcManager.setAlertMessageIOS('NDEF tag found');
@@ -39,18 +39,26 @@ class NfcProxy {
   };
 
   readTag = async () => {
+    console.log('[readTag] started');
     let tag = null;
     try {
+      console.log('[readTag] platform: ', Platform.OS);
       if (Platform.OS === 'android') {
+        console.log('[readTag] opening UI');
         NfcAndroidUI.emit('OPEN');
       }
 
+      console.log('[readTag] requesting nfc tech');
       await NfcManager.requestTechnology([NfcTech.Ndef]);
+      console.log('[readTag] nfc tech received');
 
       tag = await NfcManager.getTag();
+      console.log('[readTag] getTag: ', tag);
+
       tag.ndefStatus = await NfcManager.ndefHandler.getNdefStatus();
+      console.log('[readTag] ndef status: ', tag.ndefStatus);
     } catch (ex) {
-      console.error("[readTag] Error: ", ex);
+      console.error('[readTag] Error: ', ex);
     }
 
     this.abort();
@@ -94,7 +102,7 @@ class NfcProxy {
     return result;
   };
 
-  customTransceiveNfcA = async (payloads) => {
+  customTransceiveNfcA = async payloads => {
     let err = new ErrSuccess();
     let responses = [];
 
@@ -133,8 +141,8 @@ class NfcProxy {
 // ------------------------
 //  Utils
 // ------------------------
-const delay = (ms) => {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+const delay = ms => {
+  return new Promise(resolve => setTimeout(resolve, ms));
 };
 
 export default new NfcProxy();

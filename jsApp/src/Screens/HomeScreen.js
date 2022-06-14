@@ -2,7 +2,7 @@ import * as React from 'react';
 import {View, Image, Platform, Dimensions, StatusBar} from 'react-native';
 import NfcProxy from '../NfcProxy';
 import {Button} from 'react-native-paper';
-import WriteButton from "../Components/WriteButton";
+import WriteButton from '../Components/WriteButton';
 
 class HomeScreen extends React.Component {
   render() {
@@ -58,7 +58,9 @@ class HomeScreen extends React.Component {
 
             <ActionButton
               onPress={async () => {
+                console.log("[SCAN NFC TAG] starting to read")
                 const tag = await NfcProxy.readTag();
+                console.log("[SCAN NFC TAG] read data, ", tag)
                 if (tag) {
                   navigation.navigate('TagDetail', {tag});
                 }

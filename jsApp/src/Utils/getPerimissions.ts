@@ -1,6 +1,6 @@
 import {PermissionsAndroid} from 'react-native';
-import * as RNFS from "react-native-fs";
-import { externalStorageFolderPath } from "../constants";
+import * as RNFS from 'react-native-fs';
+import {externalStorageFolderPath} from '../constants';
 
 export const checkOrGetExternalStorageWritePermissions = async () => {
   try {
@@ -32,7 +32,8 @@ export const checkOrCreateExternalStorageFolder = async () => {
       return true;
     }
   } catch (e) {
-    console.error("Something went wrong while creating external storage folder.: ", e);
+    console.error(
+      'Something went wrong while creating external storage folder.: ', e);
     return Promise.reject(e);
   }
-}
+};
