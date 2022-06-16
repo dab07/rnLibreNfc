@@ -49,7 +49,8 @@ class NfcProxy {
       }
 
       console.log('[readTag] requesting nfc tech');
-      await NfcManager.requestTechnology([NfcTech.Ndef]);
+      // await NfcManager.requestTechnology([NfcTech.Ndef]);
+      await NfcManager.requestTechnology([NfcTech.NfcV]);
       console.log('[readTag] nfc tech received');
 
       tag = await NfcManager.getTag();
