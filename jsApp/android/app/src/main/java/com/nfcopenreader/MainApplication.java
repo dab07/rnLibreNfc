@@ -53,11 +53,9 @@ import io.realm.RealmResults;
 import io.realm.Sort;
 
 public class MainApplication extends Application implements ReactApplication {
+
     private static final String LOG_ID = "[MainApplication] Libre_LOGID::" + MainApplication.class.getSimpleName();
     public static boolean NFC_USE_MULTI_BLOCK_READ = true;
-
-//    private NfcAdapter = mNfcAdapter;
-//    private SectionsPagerAdapter mSectionsPagerAdapter;
 
     private final ReactNativeHost mReactNativeHost =
       new ReactNativeHost(this) {
@@ -97,49 +95,9 @@ public class MainApplication extends Application implements ReactApplication {
         // read settings values
         NFC_USE_MULTI_BLOCK_READ = settings.getBoolean("pref_nfc_use_multi_block_read", NFC_USE_MULTI_BLOCK_READ);
     }
-//    @Override
-//    public void onStart() {
-//        super.onStart();
 //
-//        String uid = "non-authorized";
-//        FirebaseUser currentUser = mAuth.getCurrentUser();
-//        if (currentUser != null)
-//            uid = currentUser.getUid();
-//        Log.d(LOG_ID, "User:" + uid);
-//    }
 //
-//  @Override
-//    public void onResume() {
-//      super.onResume();
-//      if (mNfcAdapter == null) {
-//          mNfcAdapter = ((NfcManager) this.getSystemService(Context.NFC_SERVICE)).getDefaultAdapter();
-//      }
 //
-//      if (mNfcAdapter != null) {
-//          try {
-//              mNfcAdapter.isEnabled();
-//          } catch (NullPointerException e) {
-//              // Drop NullPointerException
-//          }
-//          try {
-//              mNfcAdapter.isEnabled();
-//          } catch (NullPointerException e) {
-//              // Drop NullPointerException
-//          }
-//
-//          PendingIntent pi = createPendingResult(PENDING_INTENT_TECH_DISCOVERED, new Intent(), 0);
-//          if (pi != null) {
-//              try {
-//                  mNfcAdapter.enableForegroundDispatch(this, pi,
-//                          new IntentFilter[] { new IntentFilter(NfcAdapter.ACTION_TECH_DISCOVERED) },
-//                          new String[][] { new String[]{"android.nfc.tech.NfcV"} }
-//                  );
-//              } catch (NullPointerException e) {
-//                  // Drop NullPointerException
-//              }
-//          }
-//      }
-//  }
 
 ///    public void onNfcReadingFinished(ReadingData readingData) {
 //        mLastScanTime = new Date().getTime();
