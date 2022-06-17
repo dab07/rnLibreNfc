@@ -23,7 +23,7 @@ import java.util.List;
 //import static android.media.AudioManager.RINGER_MODE_SILENT;
 
 public class LibreScanCode extends AsyncTask<Tag, Void, Boolean> {
-    private static final String LOG_ID="OpenLibre::"+LibreScanCode.class.getSimpleName();
+    private static final String LOG_ID="[LibreScanCode] LOGID::"+LibreScanCode.class.getSimpleName();
     private MainActivity mainActivity;
     private String sensorTagId;
     private byte[]data;
@@ -46,7 +46,7 @@ public class LibreScanCode extends AsyncTask<Tag, Void, Boolean> {
             try {
                 nfcvTag.connect();
                 final byte[] uid = tag.getId();
-                final int step = true? 3 : 1;
+                final int step = true? 3 : 1; //if not work than set step = 1.
                 final int blockSize = 8;
 
                 for (int blockIndex = 0; blockIndex <= 40; blockIndex += step) {

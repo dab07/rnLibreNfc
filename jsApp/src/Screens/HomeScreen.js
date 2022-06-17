@@ -1,11 +1,5 @@
 import * as React from 'react';
-import {
-  View,
-  Image,
-  Platform,
-  Dimensions,
-  StatusBar,
-} from 'react-native';
+import {View, Image, Platform, Dimensions, StatusBar} from 'react-native';
 import NfcProxy from '../NfcProxy';
 import {Button} from 'react-native-paper';
 import ModuleButton from './ModuleButton';

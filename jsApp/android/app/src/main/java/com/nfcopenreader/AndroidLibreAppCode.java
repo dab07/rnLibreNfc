@@ -26,7 +26,7 @@ package com.nfcopenreader;
 //import android.media.MediaPlayer;
 //import android.media.MediaPlayer.OnCompletionListener;
 //import android.nfc.NfcAdapter;
-//import android.nfc.Tag;
+import android.nfc.Tag;
 //import android.nfc.tech.NfcA;
 //import android.nfc.tech.NfcB;
 //import android.nfc.tech.NfcBarcode;
@@ -60,8 +60,8 @@ public class AndroidLibreAppCode extends ReactContextBaseJavaModule {
         return "AndroidLibreAppCode";
     }
     @ReactMethod
-    public void ScanLibre() {
-        AndroidLibreAppCode.readNfcTag();
+    public void ScanLibre(Tag tag) {
+        AndroidLibreAppCode.readNfcTag(tag);
 //        Log.d("tag", "msg");
     }
 }
