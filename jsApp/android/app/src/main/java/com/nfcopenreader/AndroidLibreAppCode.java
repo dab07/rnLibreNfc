@@ -64,6 +64,9 @@ public class AndroidLibreAppCode extends ReactContextBaseJavaModule {
         AndroidLibreAppCode.readNfcTag(tag);
 //        Log.d("tag", "msg");
     }
+
+    private static void readNfcTag(Tag tag) {
+    }
 }
 
 

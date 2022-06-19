@@ -1,4 +1,4 @@
-import com.nfcopenreader;
+package com.nfcopenreader;
 
 import android.content.Context;
 //import android.media.AudioManager;
@@ -8,7 +8,7 @@ import android.os.AsyncTask;
 //import android.os.Vibrator;
 import android.util.Log;
 import android.view.View;
-//import android.widget.ProgressBar;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 //import android.widget.Toast;
 
@@ -26,20 +26,21 @@ public class LibreScanCode extends AsyncTask<Tag, Void, Boolean> {
     private static final String LOG_ID="[LibreScanCode] LOGID::"+LibreScanCode.class.getSimpleName();
     private MainActivity mainActivity;
     private String sensorTagId;
-    private byte[]data;
-
-//    public LibreScanCode(MainActivity mainActivity){
-//            this.mainActivity=mainActivity;
-//            data=new byte[360];
-//            }
+    private byte[] readData;
+    private Object blockIndex;
+    public LibreScanCode(MainActivity mainActivity){
+            this.mainActivity=mainActivity;
+            readData=new byte[360];
+            }
 //        private void updateProgressBar(int blockIndex) {
 //            final int progress = blockIndex;
 //            mainActivity.runOnUiThread(new Runnable() {
-//                public void run() { ((ProgressBar) mainActivity.findViewById(R.id.pb_scan_circle)).setProgress(progress);
-//                    }
-//                });
+////               public void run() { ((ProgressBar) mainActivity.findViewById(R.id.pb_scan_circle)).setProgress(progress);
+//                public void run() {
+//                }
+//            });
 //        }
-        private boolean readNfcTag (Tag tag) {
+        public boolean readNfcTag (Tag tag) {
 //            updateProgressBar(0);
             NfcV nfcvTag = NfcV.get(tag);
             Log.d(LibreScanCode.LOG_ID, "Attempting to read tag data");
@@ -61,28 +62,25 @@ public class LibreScanCode extends AsyncTask<Tag, Void, Boolean> {
 
                     byte[] readData;
 //                    Long startReadingTime = System.currentTimeMillis();
-//                    while (true) {
-//                        try {
-//                            readData = nfcvTag.transceive(cmd);
-//                            break;
-//                        } catch (IOException e) {
+                        try {
+                            readData = nfcvTag.transceive(cmd);
+                            break;
+                        } catch (IOException e) {
 //                            if ((System.currentTimeMillis() > startReadingTime + nfcReadTimeout)) {
-//                                Log.e(NfcVReaderTask.LOG_ID, "tag read timeout");
-//                                return false;
-//                            }
-//                        }
+                                Log.e(LibreScanCode.LOG_ID, "una");
+                                break;
+                            }
+                        }
+
+//                if (step == 3) {
+//                        System.arraycopy(readData, 1, data, blockIndex * blockSize, readData.length - 1);
+//                    }
+//                    else {
+//                        readData = Arrays.copyOfRange(readData, 2, readData.length);
+//                        System.arraycopy(readData, 0, data, blockIndex * blockSize, blockSize);
 //                    }
 
-                    if (step == 3) {
-                        System.arraycopy(readData, 1, data, blockIndex * blockSize, readData.length - 1);
-                    }
-                    else {
-                        readData = Arrays.copyOfRange(readData, 2, readData.length);
-                        System.arraycopy(readData, 0, data, blockIndex * blockSize, blockSize);
-                    }
-
-//                    updateProgressBar(blockIndex);
-                }
+//                    updateProgressBar((Integer) blockIndex);
                 Log.d(LibreScanCode.LOG_ID, "Got NFC tag data");
 
         } catch (Exception e) {
@@ -99,13 +97,9 @@ public class LibreScanCode extends AsyncTask<Tag, Void, Boolean> {
         return true;
         }
 
-//        private void updateProgressBar(int blockIndex) {
-//            final int progress = blockIndex;
-//            mainActivity.runOnUiThread(new Runnable() {
-//            public void run() {
-//                ((ProgressBar) mainActivity.findViewById(R.id.pb_scan_circle)).setProgress(progress);
-//            }
-//            });
-//        }
+    @Override
+    protected Boolean doInBackground(Tag... tags) {
+        return true;
     }
+}
 
