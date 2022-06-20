@@ -9,7 +9,6 @@ import java.util.Collections;
 import java.util.List;
 
 public class AndroidLibrePackage implements ReactPackage {
-
     @Override
     public List<ViewManager> createViewManagers(ReactApplicationContext reactContext) {
         return Collections.emptyList();
@@ -19,10 +18,8 @@ public class AndroidLibrePackage implements ReactPackage {
     public List<NativeModule> createNativeModules(
             ReactApplicationContext reactContext) {
         List<NativeModule> modules = new ArrayList<>();
-
-        modules.add(new AndroidLibreAppCode(reactContext));
+        modules.add(new AndroidLibreModule(reactContext));
 
         return modules;
     }
-
 }

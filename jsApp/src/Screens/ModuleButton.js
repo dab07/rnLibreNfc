@@ -1,18 +1,20 @@
 import React from 'react';
 import {NativeModules, Button} from 'react-native';
-import NfcProxy from '../NfcProxy';
-const {AndroidLibreAppCode} = NativeModules;
+const {nfcopenreader} = NativeModules;
 
+export const {
+  isSensorDetected,
+  startReadingFromCgmPatch,
+  stopReadingFromCgmPatch,
+} = nfcopenreader;
 const ModuleButton = () => {
+  // const OnPress = () => {
+  //   isSensorDetected();
+  //   startReadingFromCgmPatch();
+  //   stopReadingFromCgmPatch();
+  // };
   return (
-    <Button
-      title="Module Button"
-      onPress={async () => {
-        const tag = await NfcProxy.readTag();
-        if (tag) {
-          AndroidLibreAppCode.ScanLibre(tag);
-        }
-      }}>
+    <Button title="Module Button" onPress={startReadingFromCgmPatch}>
       Module Button
     </Button>
   );
