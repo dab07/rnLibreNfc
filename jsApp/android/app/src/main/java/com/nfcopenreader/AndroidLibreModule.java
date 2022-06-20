@@ -231,6 +231,7 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
         addLog("Handle Intent Called");
         String action = intent.getAction();
         addLog("Extracted action from intent" + action);
+//        String actTechDis = NfcAdapter.ACTION_TECH_DISCOVERED;
         if (NfcAdapter.ACTION_TECH_DISCOVERED.equals(action)) {
             addLog("Intent action :->" + NfcAdapter.ACTION_TECH_DISCOVERED);
             // In case we would still use the Tech Discovered Intent

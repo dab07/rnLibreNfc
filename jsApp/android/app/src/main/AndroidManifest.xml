@@ -4,6 +4,7 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.NFC" />
+    <uses-feature android:name="android.hardware.nfc" android:required="true" />
     <uses-permission android:name="com.google.android.gms.permission.AD_ID"/>
 
     <application
@@ -24,9 +25,23 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
+          <intent-filter android:label="@string/app_name" >
+              <action android:name="android.nfc.action.TECH_DISCOVERED" />
+
+              <category android:name="android.intent.category.DEFAULT"/>
+          </intent-filter>
           <meta-data
                   android:name="android.nfc.action.TECH_DISCOVERED"
                   android:resource="@xml/nfc_tech_filter" />
+
+          <intent-filter>
+              <action android:name="android.intent.action.MAIN" />
+
+              <category android:name="android.intent.category.LAUNCHER" />
+
+              <action android:name="android.intent.action.DOWNLOAD_COMPLETE" />
+          </intent-filter>
+
       </activity>
     </application>
 
