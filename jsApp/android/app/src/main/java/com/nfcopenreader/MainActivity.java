@@ -45,7 +45,7 @@ public class MainActivity extends ReactActivity {
       @Override
       protected Bundle getLaunchOptions() {
         Bundle mInitialProps = new Bundle();
-        Boolean isNfcStart = true;
+        Boolean isNfcStart = false;
         Intent intent = getIntent();
         Log.i("NFC", "get launch options");
         if (intent != null && intent.getAction() != null && intent.getAction().equals((NfcAdapter.ACTION_TECH_DISCOVERED))) {

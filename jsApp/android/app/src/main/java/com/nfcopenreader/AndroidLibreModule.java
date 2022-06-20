@@ -32,9 +32,9 @@ import java.io.IOException;
 import java.util.Arrays;
 
 
-//enum MESSAGE_TONE_NAME{
-//    STARTED,FINISHED,FAILED
-//}
+enum MESSAGE_TONE_NAME{
+    STARTED,FINISHED,FAILED
+}
 public class AndroidLibreModule extends ReactContextBaseJavaModule {
 
     final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
@@ -125,15 +125,15 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
         return "nfcopenreader";
     }
 
-//    @ReactMethod
-//    public void openNfcSettings(final Promise settingsPromise) {
-//        try{
-//            getCurrentActivity().startActivityForResult(new Intent(Settings.ACTION_NFC_SETTINGS),0);
-//            settingsPromise.resolve(null);
-//        }catch (Exception e){
-//            settingsPromise.reject(e);
-//        }
-//    }
+    @ReactMethod
+    public void openNfcSettings(final Promise settingsPromise) {
+        try{
+            getCurrentActivity().startActivityForResult(new Intent(Settings.ACTION_NFC_SETTINGS),0);
+            settingsPromise.resolve(null);
+        }catch (Exception e){
+            settingsPromise.reject(e);
+        }
+    }
 
 
     @ReactMethod
@@ -151,7 +151,7 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
             sendEvent(AndroidLibre_EVENTS.NFC_INITIALISATION_STARTED, null, null);
             handleIntent(intent);
         } catch (Exception e) {
-            Log.e("CGM_Reader_Module","startReadingFromCgmPatch failed", e);
+            Log.e("Android_Libre_Module","startReadingFromCgmPatch failed", e);
             WritableNativeMap nfcError = new WritableNativeMap();
             nfcError.putString("errorCode", AndroidLibre_EVENTS.NFC_INITIALISATION_FAILED.toString());
             nfcError.putString("error", e.toString());
@@ -282,15 +282,15 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
         }
     }
 
-    private void playReadingCompleteTone() {
-        try {
-            ToneGenerator readingInProgressTone = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
-            readingInProgressTone.startTone(ToneGenerator.TONE_CDMA_SOFT_ERROR_LITE, 500);
-        } catch (Exception e) {
-            Log.e("CGM_Reader_Module", "playReadingCompleteTone failed", e);
-            addLog("Failed to play playReadingCompleteTone.");
-        }
-    }
+//    private void playReadingCompleteTone() {
+//        try {
+//            ToneGenerator readingInProgressTone = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
+//            readingInProgressTone.startTone(ToneGenerator.TONE_CDMA_SOFT_ERROR_LITE, 500);
+//        } catch (Exception e) {
+//            Log.e("CGM_Reader_Module", "playReadingCompleteTone failed", e);
+//            addLog("Failed to play playReadingCompleteTone.");
+//        }
+//    }
 
 //    private class AudioNotificationPlayer {
 //
@@ -450,9 +450,9 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
                             readData = readData + currentBytesToHex + ", ";
                             break;
                         } catch (TagLostException tagLostException) {
-                            Log.e("CGM_Reader_Module","connectToTagAndReadData failed", tagLostException);
+                            Log.e("Android_Libre_Module","connectToTagAndReadData failed", tagLostException);
                         } catch (IOException e) {
-                            Log.e("CGM_Reader_Module","connectToTagAndReadData failed", e);
+                            Log.e("Android_Libre_Module","connectToTagAndReadData failed", e);
                             addLog("Error in transceive " + e.toString());
                             sendEvent(AndroidLibre_EVENTS.NFC_ERROR_IN_TRANSIEVE, null, null);
                         }
@@ -490,7 +490,7 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
                 return null;
             }
             addLog("Reading data finished");
-            playReadingCompleteTone();
+//            playReadingCompleteTone();
             finalValue = total.clone();
             return "Done...";
         }

@@ -7,14 +7,22 @@ export const {
   startReadingFromCgmPatch,
   stopReadingFromCgmPatch,
 } = nfcopenreader;
+
 const ModuleButton = () => {
-  // const OnPress = () => {
-  //   isSensorDetected();
-  //   startReadingFromCgmPatch();
-  //   stopReadingFromCgmPatch();
-  // };
+  const func = async () => {
+    try {
+      console.log('[Module Button]: start reading CGM patch');
+      await isSensorDetected();
+      console.log('[Module Button]: sensor detected');
+      const response = await startReadingFromCgmPatch(0);
+      console.log('[Module Button]: response', response);
+    } catch (e) {
+      console.error('[Module Button]: error', e);
+    }
+  };
+
   return (
-    <Button title="Module Button" onPress={startReadingFromCgmPatch}>
+    <Button title="Module Button" onPress={func}>
       Module Button
     </Button>
   );
