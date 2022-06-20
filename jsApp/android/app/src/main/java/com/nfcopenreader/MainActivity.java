@@ -23,8 +23,6 @@ import com.facebook.react.ReactRootView;
 import com.nfcopenreader.AndroidLibrePackage;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
-import io.branch.*;
-
 public class MainActivity extends ReactActivity {
 
   /**
@@ -47,7 +45,7 @@ public class MainActivity extends ReactActivity {
       @Override
       protected Bundle getLaunchOptions() {
         Bundle mInitialProps = new Bundle();
-        Boolean isNfcStart = false;
+        Boolean isNfcStart = true;
         Intent intent = getIntent();
         Log.i("NFC", "get launch options");
         if (intent != null && intent.getAction() != null && intent.getAction().equals((NfcAdapter.ACTION_TECH_DISCOVERED))) {
