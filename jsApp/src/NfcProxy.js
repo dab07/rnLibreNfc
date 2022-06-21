@@ -45,7 +45,7 @@ class NfcProxy {
         NfcAndroidUI.emit('OPEN');
       }
 
-      await NfcManager.requestTechnology([NfcTech.Ndef]);
+      await NfcManager.requestTechnology([NfcTech.NfcV]);
 
       tag = await NfcManager.getTag();
       tag.ndefStatus = await NfcManager.ndefHandler.getNdefStatus();
