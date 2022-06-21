@@ -232,7 +232,10 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
         String action = intent.getAction();
         addLog("Extracted action from intent" + action);
 //        String actTechDis = NfcAdapter.ACTION_TECH_DISCOVERED;
-        if (NfcAdapter.ACTION_TECH_DISCOVERED.equals(action)) {
+//        if (NfcAdapter.ACTION_TECH_DISCOVERED.equals(action)) {
+        if (NfcAdapter.ACTION_TAG_DISCOVERED.equals(action)
+                || NfcAdapter.ACTION_TECH_DISCOVERED.equals(action)
+                || NfcAdapter.ACTION_NDEF_DISCOVERED.equals(action)) {
             addLog("Intent action :->" + NfcAdapter.ACTION_TECH_DISCOVERED);
             // In case we would still use the Tech Discovered Intent
             Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);

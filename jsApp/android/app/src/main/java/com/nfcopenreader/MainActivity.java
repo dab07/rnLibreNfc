@@ -1,30 +1,19 @@
 package com.nfcopenreader;
 
+import android.app.PendingIntent;
 import com.facebook.react.ReactActivity;
-import android.content.Context;
 import android.content.Intent;
-import android.content.res.Configuration;
 import android.nfc.NfcAdapter;
+import android.nfc.Tag;
 import android.os.Bundle;
-import android.os.StrictMode;
+import android.widget.Toast;
 import android.util.Log;
 
-import android.view.View;
-import android.app.Application;
-import android.content.Context;
-import com.facebook.react.PackageList;
-import com.facebook.react.ReactApplication;
-import com.facebook.react.ReactInstanceManager;
-import com.facebook.react.ReactNativeHost;
-import com.facebook.react.ReactPackage;
-import com.facebook.soloader.SoLoader;
 import com.facebook.react.ReactActivityDelegate;
-import com.facebook.react.ReactRootView;
-import com.nfcopenreader.AndroidLibrePackage;
-import java.lang.reflect.InvocationTargetException;
-import java.util.List;
 public class MainActivity extends ReactActivity {
 
+  NfcAdapter nfcAdapter;
+  PendingIntent pendingIntent;
   /**
    * Returns the name of the main component registered from JavaScript. This is used to schedule
    * rendering of the component.
@@ -37,6 +26,14 @@ public class MainActivity extends ReactActivity {
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(null);
+
+    NfcAdapter nfcAdapter = NfcAdapter.getDefaultAdapter(this);
+    if (nfcAdapter == null) {
+      Toast.makeText(this,"NO NFC Capabilities", Toast.LENGTH_SHORT).show();
+      finish();
+    }
+    pendingIntent = PendingIntent.getActivity(this,0,
+            new Intent(this,this.getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),0);
   }
   @Override
   protected ReactActivityDelegate createReactActivityDelegate() {
@@ -62,6 +59,8 @@ public class MainActivity extends ReactActivity {
   @Override
   protected void onResume() {
     super.onResume();
+//    assert nfcAdapter != null;
+//    nfcAdapter.enableForegroundDispatch(this,pendingIntent,null,null);
   }
 
   @Override
@@ -72,6 +71,9 @@ public class MainActivity extends ReactActivity {
   @Override
   protected void onPause() {
     super.onPause();
+//    if (nfcAdapter != null) {
+//      nfcAdapter.disableForegroundDispatch(this);
+//    }
   }
 
   @Override
@@ -86,7 +88,6 @@ public class MainActivity extends ReactActivity {
   @Override
   public void onNewIntent(Intent intent) {
     super.onNewIntent(intent);
-//    RNBranchModule.onNewIntent(intent);
     setIntent(intent);
     if (intent != null && intent.getAction() != null && intent.getAction().equals((NfcAdapter.ACTION_TECH_DISCOVERED))) {
       Log.i("NFC", "NFC_V tag detected");
