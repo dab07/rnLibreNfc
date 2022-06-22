@@ -35,15 +35,15 @@ const App = () => {
 
   const handleScanStart = async () => {
     try {
-      console.log("[handleScanStart] Started");
+      console.log("[nfcR handleScanStart] Started");
 
       const sensorDetect = await isSensorDetected();
-      console.log("[handleScanStart]: sensor detected", sensorDetect);
+      console.log("[nfcR handleScanStart]: sensor detected", sensorDetect);
 
       const reading = await startReadingFromLibre(0);
-      console.log("[handleScanStart]: response", reading);
+      console.log("[nfcR handleScanStart]: response", reading);
     } catch (e) {
-      console.error("[handleScanStart]: error", e);
+      console.error("[nfcR handleScanStart]: error", e);
     }
   };
 
