@@ -181,7 +181,6 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
             isIntentAlreadyHandled = extras.getBoolean(handledIntentFlag);
         }
         String action = receivedIntnent.getAction();
-        addLog("NfcAdapter.ACTION_TECH_DISCOVERED: " + NfcAdapter.ACTION_TECH_DISCOVERED);
         addLog("Extracted action from intent " + action);
         addLog("isIntentAlreadyHandled value was => " + isIntentAlreadyHandled);
 

@@ -35,7 +35,7 @@ const App = () => {
 
   const handleScanStart = async () => {
     try {
-      console.log("[nfcR handleScanStart] Started");
+      console.log("[nfcR handleScanStart] Started\n");
 
       const sensorDetect = await isSensorDetected();
       console.log("[nfcR handleScanStart]: sensor detected", sensorDetect);
