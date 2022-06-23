@@ -95,6 +95,18 @@ public class MainActivity extends ReactActivity {
         super.onNewIntent(intent);
         setIntent(intent);
 
+        if (intent != null) {
+            if (intent.getAction() != null) {
+                Log.i("NFC", "Intent: " + intent.getAction());
+            }
+            else {
+                Log.i("NFC", "action is null but not Intent");
+            }
+        }
+        else {
+            Log.i("NFC", "Intent = null");
+        }
+        Log.i("NFC", "intent: ");
         String action = intent.getAction();
         if (NfcAdapter.ACTION_TAG_DISCOVERED.equals(action)
                 || NfcAdapter.ACTION_TECH_DISCOVERED.equals(action)
