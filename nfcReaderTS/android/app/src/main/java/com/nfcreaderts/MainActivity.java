@@ -1,5 +1,6 @@
 package com.nfcreaderts;
 
+import android.annotation.SuppressLint;
 import android.app.PendingIntent;
 import android.content.Intent;
 import android.nfc.NfcAdapter;
@@ -10,12 +11,13 @@ import android.widget.Toast;
 import com.facebook.react.ReactActivity;
 import com.facebook.react.ReactActivityDelegate;
 import com.facebook.react.ReactRootView;
-
+import android.content.IntentFilter;
 public class MainActivity extends ReactActivity {
 
     final static String TAG = "nfcReaderTS";
     NfcAdapter nfcAdapter;
     PendingIntent pendingIntent;
+    private static final int PENDING_INTENT_TECH_DISCOVERED = 1;
 
     /**
      * Returns the name of the main component registered from JavaScript. This is used to schedule
@@ -30,6 +32,7 @@ public class MainActivity extends ReactActivity {
      * Returns the instance of the {@link ReactActivityDelegate}. There the RootView is created and
      * you can specify the rendered you wish to use (Fabric or the older renderer).
      */
+    @SuppressLint("WrongConstant")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -39,8 +42,11 @@ public class MainActivity extends ReactActivity {
             Toast.makeText(this, "NO NFC Capabilities", Toast.LENGTH_SHORT).show();
             finish();
         }
-        pendingIntent = PendingIntent.getActivity(this, 0, new Intent(this, this.getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), 0);
+//        pendingIntent = PendingIntent.getActivity(this, 0, new Intent(this, this.getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), PendingIntent.FLAG_MUTABLE);
+
+
     }
+
 
     @Override
     protected ReactActivityDelegate createReactActivityDelegate() {
@@ -59,7 +65,7 @@ public class MainActivity extends ReactActivity {
                     isNfcStart = true;
                 }
                 Log.i("NFC", "initial porps set" + isNfcStart);
-                mInitialProps.putBoolean("isNfcStart", isNfcStart);
+                mInitialProps.putBoolean("isNfcStart ", isNfcStart);
                 return mInitialProps;
             }
         };
@@ -68,8 +74,22 @@ public class MainActivity extends ReactActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        assert nfcAdapter != null;
-        nfcAdapter.enableForegroundDispatch(this, pendingIntent, null, null);
+//        assert nfcAdapter != null;
+        if (nfcAdapter == null) {
+            nfcAdapter = NfcAdapter.getDefaultAdapter(this);
+        }
+        pendingIntent = createPendingResult(PENDING_INTENT_TECH_DISCOVERED, new Intent(), 0);
+        if (pendingIntent != null) {
+            try {
+                nfcAdapter.enableForegroundDispatch(this, pendingIntent,
+                        new IntentFilter[] { new IntentFilter(NfcAdapter.ACTION_TECH_DISCOVERED) },
+                        new String[][] { new String[]{"android.nfc.tech.NfcV"}}
+                );
+            } catch (NullPointerException e) {
+
+            }
+        }
+//        nfcAdapter.enableForegroundDispatch(this, pendingIntent, null, null);
     }
 
     @Override
@@ -91,27 +111,27 @@ public class MainActivity extends ReactActivity {
     }
 
     @Override
-    public void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-        setIntent(intent);
+    public void onNewIntent(Intent data) {
+        super.onNewIntent(data);
+        setIntent(data);
 
-        if (intent != null) {
-            if (intent.getAction() != null) {
-                Log.i("NFC", "Intent: " + intent.getAction());
-            }
-            else {
-                Log.i("NFC", "action is null but not Intent");
-            }
-        }
-        else {
-            Log.i("NFC", "Intent = null");
-        }
+//        if (intent != null) {
+//            if (intent.getAction() != null) {
+//                Log.i("NFC", "Intent: " + intent.getAction());
+//            }
+//            else {
+//                Log.i("NFC", "action is null but not Intent");
+//            }
+//        }
+//        else {
+//            Log.i("NFC", "Intent = null");
+//        }
         Log.i("NFC", "intent: ");
-        String action = intent.getAction();
+        String action = data.getAction();
         if (NfcAdapter.ACTION_TAG_DISCOVERED.equals(action)
                 || NfcAdapter.ACTION_TECH_DISCOVERED.equals(action)
                 || NfcAdapter.ACTION_NDEF_DISCOVERED.equals(action)) {
-            Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
+            Tag tag = data.getParcelableExtra(NfcAdapter.EXTRA_TAG);
             assert tag != null;
 //            byte[] id = tag.getId();
 //            String[] techList = tag.getTechList();
@@ -122,6 +142,12 @@ public class MainActivity extends ReactActivity {
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+
+        switch (requestCode) {
+            case PENDING_INTENT_TECH_DISCOVERED:
+                onNewIntent(data);
+                break;
+        }
     }
 
     public static class MainActivityDelegate extends ReactActivityDelegate {

@@ -180,14 +180,14 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
         addLog("Extracted action from intent " + action);
         addLog("isIntentAlreadyHandled value was => " + isIntentAlreadyHandled);
 
-//        if (NfcAdapter.ACTION_TECH_DISCOVERED.equals(action) && !isIntentAlreadyHandled) {
-//            isSensorDetected = true;
-//        }
-        if (NfcAdapter.ACTION_TAG_DISCOVERED.equals(action)
-                || NfcAdapter.ACTION_TECH_DISCOVERED.equals(action)
-                || NfcAdapter.ACTION_NDEF_DISCOVERED.equals(action) && !isIntentAlreadyHandled) {
+        if (NfcAdapter.ACTION_TECH_DISCOVERED.equals(action) && !isIntentAlreadyHandled) {
             isSensorDetected = true;
         }
+//        if (NfcAdapter.ACTION_TAG_DISCOVERED.equals(action)
+//                || NfcAdapter.ACTION_TECH_DISCOVERED.equals(action)
+//                || NfcAdapter.ACTION_NDEF_DISCOVERED.equals(action) && !isIntentAlreadyHandled) {
+//            isSensorDetected = true;
+//        }
         addLog("isSensorDetected from native => " + isSensorDetected);
         promise.resolve(isSensorDetected);
     }
@@ -208,6 +208,8 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
                 nfcStatus.putBoolean("isNfcAdapterAvailable", false);
                 nfcStatus.putBoolean("isNfcAdapterEnabled", false);
             }
+
+
             promise.resolve(nfcStatus);
         } catch (Exception e) {
             Log.e("AndroidLibreModule","checkForNfcOnDevice failed", e);
@@ -224,11 +226,11 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
         addLog("Handle Intent Called");
         String action = intent.getAction();
         addLog("Extracted action from intent" + action);
-//        if (NfcAdapter.ACTION_TECH_DISCOVERED.equals(action)) {
-        if (NfcAdapter.ACTION_TAG_DISCOVERED.equals(action)
-                || NfcAdapter.ACTION_TECH_DISCOVERED.equals(action)
-                || NfcAdapter.ACTION_NDEF_DISCOVERED.equals(action)) {
-            addLog("Intent action :->" + NfcAdapter.ACTION_TECH_DISCOVERED);
+        if (NfcAdapter.ACTION_TECH_DISCOVERED.equals(action)) {
+//        if (NfcAdapter.ACTION_TAG_DISCOVERED.equals(action)
+//                || NfcAdapter.ACTION_TECH_DISCOVERED.equals(action)
+//                || NfcAdapter.ACTION_NDEF_DISCOVERED.equals(action)) {
+//            addLog("Intent action: " + NfcAdapter.ACTION_TECH_DISCOVERED);
             // In case we would still use the Tech Discovered Intent
             Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
             intent.putExtra(handledIntentFlag, true);
