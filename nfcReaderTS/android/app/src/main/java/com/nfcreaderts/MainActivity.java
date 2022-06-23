@@ -1,19 +1,19 @@
 package com.nfcreaderts;
 
-import com.facebook.react.ReactActivity;
-import com.facebook.react.ReactActivityDelegate;
-import com.facebook.react.ReactRootView;
-
 import android.app.PendingIntent;
 import android.content.Intent;
 import android.nfc.NfcAdapter;
 import android.nfc.Tag;
 import android.os.Bundle;
-import android.widget.Toast;
 import android.util.Log;
+import android.widget.Toast;
+import com.facebook.react.ReactActivity;
+import com.facebook.react.ReactActivityDelegate;
+import com.facebook.react.ReactRootView;
 
 public class MainActivity extends ReactActivity {
 
+    final static String TAG = "nfcReaderTS";
     NfcAdapter nfcAdapter;
     PendingIntent pendingIntent;
 
@@ -32,9 +32,9 @@ public class MainActivity extends ReactActivity {
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(null);
+        super.onCreate(savedInstanceState);
 
-        NfcAdapter nfcAdapter = NfcAdapter.getDefaultAdapter(this);
+        nfcAdapter = NfcAdapter.getDefaultAdapter(this);
         if (nfcAdapter == null) {
             Toast.makeText(this, "NO NFC Capabilities", Toast.LENGTH_SHORT).show();
             finish();
@@ -45,29 +45,31 @@ public class MainActivity extends ReactActivity {
     @Override
     protected ReactActivityDelegate createReactActivityDelegate() {
 
-      return new ReactActivityDelegate(this, getMainComponentName()) {
+        return new ReactActivityDelegate(this, getMainComponentName()) {
 
 
-        @Override
-        protected Bundle getLaunchOptions() {
-          Bundle mInitialProps = new Bundle();
-          Boolean isNfcStart = false;
-          Intent intent = getIntent();
-          Log.i("NFC", "get launch options");
-          if (intent != null && intent.getAction() != null && intent.getAction().equals((NfcAdapter.ACTION_TECH_DISCOVERED))) {
-            Log.i("NFC", "set flag true");
-            isNfcStart = true;
-          }
-          Log.i("NFC", "initial porps set" + isNfcStart.toString());
-          mInitialProps.putBoolean("isNfcStart", isNfcStart);
-          return mInitialProps;
-        }
-      };
+            @Override
+            protected Bundle getLaunchOptions() {
+                Bundle mInitialProps = new Bundle();
+                Boolean isNfcStart = false;
+                Intent intent = getIntent();
+                Log.i("NFC", "get launch options");
+                if (intent != null && intent.getAction() != null && intent.getAction().equals((NfcAdapter.ACTION_TECH_DISCOVERED))) {
+                    Log.i("NFC", "set flag true");
+                    isNfcStart = true;
+                }
+                Log.i("NFC", "initial porps set" + isNfcStart);
+                mInitialProps.putBoolean("isNfcStart", isNfcStart);
+                return mInitialProps;
+            }
+        };
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        assert nfcAdapter != null;
+        nfcAdapter.enableForegroundDispatch(this, pendingIntent, null, null);
     }
 
     @Override
@@ -78,6 +80,9 @@ public class MainActivity extends ReactActivity {
     @Override
     protected void onPause() {
         super.onPause();
+        if (nfcAdapter != null) {
+            nfcAdapter.disableForegroundDispatch(this);
+        }
     }
 
     @Override
@@ -89,10 +94,16 @@ public class MainActivity extends ReactActivity {
     public void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
-        if (intent != null && intent.getAction() != null && intent.getAction().equals(( NfcAdapter.ACTION_TECH_DISCOVERED ))) {
-            Log.i("NFC", "NFC_V tag detected");
-        } else {
-            Log.e("NFC", "NFCV tag not detected");
+
+        String action = intent.getAction();
+        if (NfcAdapter.ACTION_TAG_DISCOVERED.equals(action)
+                || NfcAdapter.ACTION_TECH_DISCOVERED.equals(action)
+                || NfcAdapter.ACTION_NDEF_DISCOVERED.equals(action)) {
+            Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
+            assert tag != null;
+//            byte[] id = tag.getId();
+//            String[] techList = tag.getTechList();
+            Log.i(TAG, "tag found: " + tag);
         }
     }
 
@@ -114,5 +125,4 @@ public class MainActivity extends ReactActivity {
             return reactRootView;
         }
     }
-
 }
