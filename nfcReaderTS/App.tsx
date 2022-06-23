@@ -73,9 +73,6 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     fontWeight: "200",
   },
-  scanReading: {
-
-  }
 });
 
 export default App;
