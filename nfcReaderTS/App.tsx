@@ -24,7 +24,7 @@ import { Colors } from "react-native/Libraries/NewAppScreen";
 import Section from "./components/Section";
 
 const { nfcReaderTS } = NativeModules;
-const { isSensorDetected, startReadingFromLibre } = nfcReaderTS;
+const { checkForNfcOnDevice, isSensorDetected, startReadingFromLibre } = nfcReaderTS;
 
 const App = () => {
   const isDarkMode = useColorScheme() === "dark";
@@ -35,15 +35,17 @@ const App = () => {
 
   const handleScanStart = async () => {
     try {
-      console.log("[handleScanStart] Started");
+      console.log("[nfcR handleScanStart] Started\n");
 
+      const isNfcOnDevice = await checkForNfcOnDevice();
+      console.log("[nfcR handleScanStart]: ", isNfcOnDevice);
       const sensorDetect = await isSensorDetected();
-      console.log("[handleScanStart]: sensor detected", sensorDetect);
+      console.log("[nfcR handleScanStart]: sensor detected", sensorDetect);
 
       const reading = await startReadingFromLibre(0);
-      console.log("[handleScanStart]: response", reading);
+      console.log("[nfcR handleScanStart]: response", reading);
     } catch (e) {
-      console.error("[handleScanStart]: error", e);
+      console.error("[nfcR handleScanStart]: error", e);
     }
   };
 
@@ -73,9 +75,6 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     fontWeight: "200",
   },
-  scanReading: {
-
-  }
 });
 
 export default App;

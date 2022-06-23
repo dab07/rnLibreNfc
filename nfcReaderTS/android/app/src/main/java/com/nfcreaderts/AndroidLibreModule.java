@@ -3,19 +3,14 @@ package com.nfcreaderts;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.media.AudioManager;
 import android.media.MediaPlayer;
-import android.media.ToneGenerator;
 import android.nfc.NfcAdapter;
 import android.nfc.NfcManager;
 import android.nfc.Tag;
 import android.nfc.TagLostException;
 import android.nfc.tech.NfcV;
-import android.nfc.tech.NdefFormatable;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Handler;
-import android.provider.Settings;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -46,12 +41,12 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
     private Promise sugarReadingPromise;
     private byte[] finalValue = new byte[9001];
     final public static String CGM_EVENT_NAME = "ABOTT_CGM_EVENT";
-    private AsyncTask<Tag, Void, String> readerTask = null;
+    private AsyncTask<Tag, Void, String> readerTask;
     private final String handledIntentFlag = "ALREADY_HANDLED";
     private Boolean isAudioEnabledFlag = false;
     public static MediaPlayer mediaPlayer = null;
 
-    AndroidLibreModule(ReactApplicationContext context) {
+    public AndroidLibreModule(ReactApplicationContext context) {
         super(context);
     }
 
@@ -174,6 +169,7 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void isSensorDetected(final Promise promise) {
         boolean isSensorDetected = false;
+
         Intent receivedIntnent = getCurrentActivity().getIntent();
         Boolean isIntentAlreadyHandled = false;
         Bundle extras = receivedIntnent.getExtras();
@@ -181,18 +177,17 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
             isIntentAlreadyHandled = extras.getBoolean(handledIntentFlag);
         }
         String action = receivedIntnent.getAction();
-        addLog("NfcAdapter.ACTION_TECH_DISCOVERED: " + NfcAdapter.ACTION_TECH_DISCOVERED);
         addLog("Extracted action from intent " + action);
         addLog("isIntentAlreadyHandled value was => " + isIntentAlreadyHandled);
 
-//        if (NfcAdapter.ACTION_TECH_DISCOVERED.equals(action) && !isIntentAlreadyHandled) {
-//            isSensorDetected = true;
-//        }
-        if (NfcAdapter.ACTION_TAG_DISCOVERED.equals(action)
-                || NfcAdapter.ACTION_TECH_DISCOVERED.equals(action)
-                || NfcAdapter.ACTION_NDEF_DISCOVERED.equals(action) && !isIntentAlreadyHandled) {
+        if (NfcAdapter.ACTION_TECH_DISCOVERED.equals(action) && !isIntentAlreadyHandled) {
             isSensorDetected = true;
         }
+//        if (NfcAdapter.ACTION_TAG_DISCOVERED.equals(action)
+//                || NfcAdapter.ACTION_TECH_DISCOVERED.equals(action)
+//                || NfcAdapter.ACTION_NDEF_DISCOVERED.equals(action) && !isIntentAlreadyHandled) {
+//            isSensorDetected = true;
+//        }
         addLog("isSensorDetected from native => " + isSensorDetected);
         promise.resolve(isSensorDetected);
     }
@@ -213,9 +208,11 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
                 nfcStatus.putBoolean("isNfcAdapterAvailable", false);
                 nfcStatus.putBoolean("isNfcAdapterEnabled", false);
             }
+
+
             promise.resolve(nfcStatus);
         } catch (Exception e) {
-            Log.e("CGM_Reader_Module","checkForNfcOnDevice failed", e);
+            Log.e("AndroidLibreModule","checkForNfcOnDevice failed", e);
             Log.e("NFC Error", e.toString());
             WritableNativeMap nfcError = new WritableNativeMap();
             nfcError.putString("errorCode", AndroidLibre_EVENTS.NFC_CHECK_FAIL.toString());
@@ -229,11 +226,11 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
         addLog("Handle Intent Called");
         String action = intent.getAction();
         addLog("Extracted action from intent" + action);
-//        if (NfcAdapter.ACTION_TECH_DISCOVERED.equals(action)) {
-        if (NfcAdapter.ACTION_TAG_DISCOVERED.equals(action)
-                || NfcAdapter.ACTION_TECH_DISCOVERED.equals(action)
-                || NfcAdapter.ACTION_NDEF_DISCOVERED.equals(action)) {
-            addLog("Intent action :->" + NfcAdapter.ACTION_TECH_DISCOVERED);
+        if (NfcAdapter.ACTION_TECH_DISCOVERED.equals(action)) {
+//        if (NfcAdapter.ACTION_TAG_DISCOVERED.equals(action)
+//                || NfcAdapter.ACTION_TECH_DISCOVERED.equals(action)
+//                || NfcAdapter.ACTION_NDEF_DISCOVERED.equals(action)) {
+//            addLog("Intent action: " + NfcAdapter.ACTION_TECH_DISCOVERED);
             // In case we would still use the Tech Discovered Intent
             Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
             intent.putExtra(handledIntentFlag, true);
@@ -273,69 +270,6 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
         return true;
     }
 
-//    private void playReadingInProgressTone() {
-//        try {
-//            ToneGenerator readingInProgressTone = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
-//            readingInProgressTone.startTone(ToneGenerator.TONE_CDMA_PIP, 100);
-//        } catch (Exception e) {
-//            Log.e("AndroidLibreModule", "playReadingInProgressTone failed", e);
-//            addLog("Failed to play playReadingInProgressTone.");
-//        }
-//    }
-
-//    private void playReadingCompleteTone() {
-//        try {
-//            ToneGenerator readingInProgressTone = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
-//            readingInProgressTone.startTone(ToneGenerator.TONE_CDMA_SOFT_ERROR_LITE, 500);
-//        } catch (Exception e) {
-//            Log.e("CGM_Reader_Module", "playReadingCompleteTone failed", e);
-//            addLog("Failed to play playReadingCompleteTone.");
-//        }
-//    }
-
-//    private class AudioNotificationPlayer {
-//
-//        protected void execute(@NonNull MESSAGE_TONE_NAME... message_tone_names) {
-//            MESSAGE_TONE_NAME toneName = message_tone_names[0];
-//            Log.d("NFC_AUDIO_CGM", "Do in BG Called " + toneName.toString());
-//            if (!isAudioEnabledFlag) return;
-//            try {
-//                Log.d("NFC_AUDIO_CGM", "Entered Try block " + toneName.toString());
-//
-//                if (toneName == MESSAGE_TONE_NAME.FAILED) {
-//                    mediaPlayer = MediaPlayer.create(getReactApplicationContext(), R.raw.nfc_reading_failed);
-//                    Log.d("NFC_AUDIO_CGM", "Instantiated " + toneName.toString());
-//                } else if (toneName == MESSAGE_TONE_NAME.FINISHED) {
-//                    mediaPlayer = MediaPlayer.create(getReactApplicationContext(), R.raw.nfc_reading_finished);
-//                    Log.d("NFC_AUDIO_CGM", "Instantiated " + toneName.toString());
-//                } else if (toneName == MESSAGE_TONE_NAME.STARTED) {
-//                    mediaPlayer = MediaPlayer.create(getReactApplicationContext(), R.raw.nfc_reading_started);
-//                    Log.d("NFC_AUDIO_CGM", "Instantiated " + toneName.toString());
-//                }
-//                mediaPlayer.setWakeMode(getReactApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
-//                mediaPlayer.start();
-//                Log.d("NFC_AUDIO_CGM", "Started " + toneName.toString());
-//            }catch (Exception e){
-//                Log.e("NFC_AUDIO_CGM", e.toString());
-//            }finally {
-//                if(mediaPlayer != null) {
-//                    mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-//                        @Override
-//                        public void onCompletion(MediaPlayer mp) {
-//                            if (mediaPlayer != null) {
-//                                mediaPlayer.reset();
-//                                mediaPlayer.stop();
-//                                mediaPlayer.release();
-//                            }
-//                            mediaPlayer = null;
-//                            Log.d("NFC_AUDIO_CGM", "released");
-//                        }
-//                    });
-//                }
-//            }
-//
-//        }
-//    }
 
     /**
      * Background task for reading the data. Do not block the UI thread while reading.
