@@ -50,34 +50,6 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
         super(context);
     }
 
-    public native byte[] commander1(int i11, int min);
-
-    public native int commander2(int i12, int i13);
-
-    public native int commander3(int i10, int i13);
-
-    public native int getCommanderMin(int i9, int i10);
-
-    public native int getCommanderi11(int i8, int i10);
-
-    public native int getCommanderi3(int i);
-
-    public native int getCommanderi4(int i, int i3);
-
-    public native int getCommanderi5(int i2, int i3);
-
-    public native int getCommanderi6(int i5);
-
-    public native int getCommanderi7(int i6, int i5);
-
-    public native int getCommanderi8(int i4);
-
-    public native int getCommanderi9(int i7);
-
-    public native int getCommanderi10(int i7);
-
-    public native boolean checkForNextStep(int i10, int i9);
-
     /**
      * /**
      *
@@ -355,137 +327,24 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
             readData = "";
             addLog("readData variable intialised with empty string");
 
-            byte[][] bloques = new byte[2510][8];
-            byte[] total = new byte[16001];
-
             try {
-                addLog("Entered readData try block");
-                int totalIdx = 0;
-                addLog("Loop started");
-                int numberOfEmptyByes = 0;
+                byte[] cmd = new byte[] {
+                        (byte)0x00, // Flags
+                        (byte)0x2B // Command: Get system information
+                };
+                byte[] data = nfcvTag.transceive(cmd);
 
-                for (int i = 0; i <= 1200; i++) {
-
-                    if (i > MUST_READ_TO_INDEX && i < startIndex) {
-                        readData = readData + "" + ", ";
-                        continue;
-                    }
-
-                    byte[] oneBlock = new byte[0];
-
-                    while (!this.isCancelled()) {
-                        try {
-                            if (i % 30 == 0) {
-                                int readingIndex = (i/100) + 1;
-                                sendEvent(AndroidLibre_EVENTS.ONE_BLOCK_READ,Integer.toString(readingIndex) , null);
-                            }
-                            oneBlock = readPatchFram(nfcvTag, i * 8, 8);
-                            String currentBytesToHex = bytesToHex(oneBlock);
-//              addLog("At loc " + i + " " + currentBytesToHex);
-                            readData = readData + currentBytesToHex + ", ";
-                            break;
-                        } catch (TagLostException tagLostException) {
-                            Log.e("Android_Libre_Module","connectToTagAndReadData failed", tagLostException);
-                        } catch (IOException e) {
-                            Log.e("Android_Libre_Module","connectToTagAndReadData failed", e);
-                            addLog("Error in transceive " + e.toString());
-                            sendEvent(AndroidLibre_EVENTS.NFC_ERROR_IN_TRANSIEVE, null, null);
-                        }
-                    }
-                    oneBlock = Arrays.copyOfRange(oneBlock, 0, oneBlock.length);
-                    bloques[i] = Arrays.copyOf(oneBlock, 8);
-                    if (checkEmptyBytes(bloques[i])) {
-                        numberOfEmptyByes++;
-                    } else {
-                        numberOfEmptyByes = 0;
-                    }
-
-                    if (numberOfEmptyByes >= 20) {
-                        break;
-                    }
-
-                    for (int idx = 0; idx < bloques[i].length; idx++) {
-                        total[totalIdx++] = bloques[i][idx];
-                    }
-                }
-
-            } catch (Exception e) {
-                Log.e("AndroidLibreModule","connectToTagAndReadData failed", e);
-                addLog("Error in transieve" + e.toString());
-                sendEvent(AndroidLibre_EVENTS.NFC_ERROR_IN_TRANSIEVE, null, null);
-                return null;
-            }
-            try {
-                nfcvTag.close();
+                data = Arrays.copyOfRange(data, 2, data.length - 1);
+                addLog("data: " + data);
             } catch (IOException e) {
-                Log.e("AndroidLibreModule", "Nfc Close failed", e);
-                addLog(e.toString());
-                addLog(log);
-                return null;
+                addLog("Unable to transceive");
             }
-            addLog("Reading data finished");
-//            playReadingCompleteTone();
-            finalValue = total.clone();
-            return "Done...";
+            return "done..";
         }
-
         @Override
         protected String doInBackground(Tag... params) {
             return connectToTagAndReadData(params);
         }
 
-        public byte[] readPatchFram(NfcV nfcvTag, int i, int i2) throws IOException {
-            int i3 = getCommanderi3(i);
-            int i4 = getCommanderi4(i, i3);
-            int i5 = getCommanderi5(i2, i3);
-            int i6 = getCommanderi6(i5);
-            int i7 = getCommanderi7(i6, i5);
-            int i8 = getCommanderi8(i4);
-            byte[] bArr = new byte[i7];
-            int i9 = getCommanderi9(i7);
-            int i10 = getCommanderi10(i7);
-            while (checkForNextStep(i10, i9)) {
-                int i11 = getCommanderi11(i8, i10);
-                int min = getCommanderMin(i9, i10);
-                byte[] tranceiveWithRetries = tranceiveWithRetries(nfcvTag, commander1(i11, min));
-                if (!responseIsSuccess(tranceiveWithRetries) || tranceiveWithRetries.length < (min * 8) + 1) {
-                    return null;
-                }
-                for (int i12 = 0; i12 < min; i12++) {
-                    for (int i13 = 0; i13 < 8; i13++) {
-                        bArr[(i10 * 8) + i13] = tranceiveWithRetries[(i12 * 8) + i13 + 1];
-                    }
-                    i10++;
-                }
-            }
-            return Arrays.copyOfRange(bArr, i3, i5);
-        }
-
-        public boolean responseIsSuccess(byte[] bArr) {
-            return bArr != null && bArr.length > 0 && (bArr[0] & 1) == 0;
-        }
-
-        public byte[] tranceiveWithRetries(NfcV nfcvTag, byte[] bArr) {
-            int i = 0;
-            IOException e = null;
-            byte[] bArr2 = null;
-            while (i < 43 && !this.isCancelled()) {
-                try {
-                    byte[] transceive = nfcvTag.transceive(bArr);
-                    if (responseIsSuccess(transceive)) {
-                        return transceive;
-                    }
-                    i++;
-                    bArr2 = transceive;
-                } catch (IOException e2) {
-                    Log.e("AndroidLibreModule","tranceiveWithRetries failed", e2);
-                    addLog(e2.toString());
-                }
-            }
-            if (e != null) {
-                return null;
-            }
-            return bArr2;
-        }
     }
 }
