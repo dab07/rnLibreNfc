@@ -320,7 +320,7 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
             readData = "";
             byte[][] bloques = new byte[40][8];
             byte[] allBlocks = new byte[40*8];
-            addLog("readData variable intialised with empty string");
+            addLog("Start Transceiving...");
             try {
                 byte[] cmd = new byte[] {
                         (byte)0x00, // Flags
@@ -365,7 +365,7 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
                 int ii=0;
 
                 for (int i = 8; i < 8 + 15 * 12; i += 12) {
-                    Log.d("socialdiabetes", s.substring(i,i+12));
+                    Log.d("NFC", s.substring(i,i+12));
                     bloque1[ii] = s.substring(i,i+12);
 
                     final String g = s.substring(i+2,i+4)+s.substring(i,i+2);
