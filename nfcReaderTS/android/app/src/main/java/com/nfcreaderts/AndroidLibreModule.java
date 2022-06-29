@@ -26,6 +26,7 @@ import com.facebook.react.modules.core.DeviceEventManagerModule;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 
 
 enum MESSAGE_TONE_NAME{
@@ -302,6 +303,33 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
                 }
             }
         }
+        public String getSensorID(String tagID) {
+            int [] Is = new int[]{0,0,0,0,0,0};
+            int [] Js = new int[]{0,0,0,0,0,0,0,0,0,0};
+            final String l = "0123456789ACDEFGHJKLMNPQRTUVWXYZ";
+            for(int i=0;i<Is.length;i++) {
+                Is[i] = Integer.parseInt(tagID.substring(((6 - i) * 2)-2, ((6 - i) * 2)), 16) & 255;
+            }
+
+            Js[0] = (Is[0] >> 3);
+            Js[1] = (((Is[0] & 7) << 2) | (Is[1] >> 6));
+            Js[2] = ((Is[1] >> 1) & 31);
+            Js[3] = (((Is[1] & 1) << 4) | (Is[2] >> 4));
+            Js[4] = (((Is[3-1] & 15) << 1) | (Is[3] >> 7));
+            Js[5] = ((Is[3] >> 2) & 31);
+            Js[6] = (((Is[3] & 3) << 3) | (Is[4] >> 5));
+            Js[7] = (Is[4] & 31);
+            Js[8] = (Is[5] >> 3);
+            Js[9] = ((Is[5] << 2) & 31);
+
+            String sensorID = "";
+
+            for(int i = 0; i < Js.length; i++) {
+                sensorID += l.charAt(Js[i]);
+            }
+
+            return sensorID;
+        }
 
         private String connectToTagAndReadData(Tag... params) {
             Tag tag = params[0];
@@ -309,6 +337,8 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
 
             addLog("Enter NdefReaderTask: " + nfcvTag.toString());
             addLog("Tag ID: " + tag.getId());
+            String sensorID = getSensorID(bytesToHex(tag.getId()));
+            addLog("Sensor ID: " + sensorID);
             sendEvent(AndroidLibre_EVENTS.NFC_READ_STARTED, null, null);
             try {
                 addLog("Trying to connect to tag");
@@ -328,16 +358,26 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
             addLog("readData variable intialised with empty string");
 
             try {
-                byte[] cmd = new byte[] {
-                        (byte)0x00, // Flags
-                        (byte)0x2B // Command: Get system information
+                byte [] cmd = new byte[]{
+                        (byte) 0x20, // Flags
+                        (byte) 0x20, // Command: Read multiple blocks
+                        0,0,0,0,0,0,0,0,
+                        (byte) (3) // block (offset)
                 };
-                byte[] data = nfcvTag.transceive(cmd);
+                System.arraycopy(nfcvTag.getTag().getId(),0,cmd,2,8);
+                readData = bytesToHex(Arrays.copyOfRange(nfcvTag.transceive(cmd),1,9));
+                int readPos = (Integer.parseInt(readData.substring(4, 6), 16) - 1 + 16) % 16;
 
-                data = Arrays.copyOfRange(data, 2, data.length - 1);
-                addLog("data: " + data);
+
+
             } catch (IOException e) {
                 addLog("Unable to transceive");
+            } finally {
+                try {
+                    nfcvTag.close();
+                } catch (IOException e) {
+                    addLog("Unable to close techonology");
+                }
             }
             return "done..";
         }
