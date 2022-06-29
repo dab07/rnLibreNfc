@@ -361,9 +361,9 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
         }
         private Float processGlucose(int rawVal) {
             Float processedGlucose = ((rawVal & 0x0FFF) / 6f) - 37f;
-//            processedGlucose = ((processedGlucose*1.088f)-9.2f)/18;
+//             processedGlucose = ((processedGlucose*1.088f)-9.2f)/18;
             // second set of corrections
-//            processedGlucose = (processedGlucose*0.6141f)+0.8847f;
+            processedGlucose = (processedGlucose*0.6141f)+0.8847f;
             return processedGlucose;
         }
         private int[] getValues(NfcV nfcTag, int valueNo, boolean dense) throws java.io.IOException {
@@ -379,11 +379,6 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
 
             int rawGlucose = Integer.parseInt(block.substring(blockPosition+2,blockPosition+4)+block.substring(blockPosition,blockPosition+2),16);
             int rawTemp = Integer.parseInt(block.substring(blockPosition+8,blockPosition+10)+block.substring(blockPosition+6,blockPosition+8),16);
-
-            addLog("Temperature value read - "+rawTemp+", from hex "+
-                    block.substring(blockPosition+8,blockPosition+10)+block.substring(blockPosition+6,blockPosition+8)+
-                    " - full Hex - "+block);
-
             return new int[]{rawGlucose,rawTemp};
         }
         private String connectToTagAndReadData(Tag... params) {
@@ -448,11 +443,17 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
                     // }
                     sparseVals.add(tmpVals);
                 }
-                ArrayList<Float> GlucodeVal = new ArrayList<>();
+                ArrayList<Float> DenseGlucodeVal = new ArrayList<>();
                 for(int i=0;i<denseVals.size();i++) {
-                    GlucodeVal.add(processGlucose(denseVals.get(i)[0]));
+                    DenseGlucodeVal.add(processGlucose(denseVals.get(i)[0]));
                 }
-                addLog("Glucose Values " + GlucodeVal.size());
+                addLog("Dense Glucose Values " + DenseGlucodeVal);
+
+                ArrayList<Float> SparseGlucodeVal = new ArrayList<>();
+                for(int i=0;i<sparseVals.size();i++) {
+                    SparseGlucodeVal.add(processGlucose(sparseVals.get(i)[1]));
+                }
+                addLog("Sparse Glucose Values " + SparseGlucodeVal);
             } catch (IOException e) {
                 addLog("Unable to transceive");
             } finally {
