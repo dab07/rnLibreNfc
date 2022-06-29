@@ -25,7 +25,7 @@ import com.facebook.react.bridge.WritableNativeMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.*;
 
 
 enum MESSAGE_TONE_NAME{
@@ -35,48 +35,24 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
 
     final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
     private String log = "";
-    private String readData, buffer;
+    private String readData;
     private int startIndex = 0;
-    private static final int MUST_READ_TO_INDEX = 22;
     private Promise sugarReadingPromise;
     private byte[] finalValue = new byte[9001];
     final public static String CGM_EVENT_NAME = "ABOTT_CGM_EVENT";
     private AsyncTask<Tag, Void, String> readerTask;
     private final String handledIntentFlag = "ALREADY_HANDLED";
-    private Boolean isAudioEnabledFlag = false;
-    public static MediaPlayer mediaPlayer = null;
 
+    public long lastReadTime = 0;
+    public int lastTVal = 0;
+    public int lastDenseGVal = 0;
+    public int lastDenseTVal = 0;
+    public int lastSparseTVal = 0;
+    public int lastSparseGVal = 0;
+    public int lastSensorTime = 0;
     public AndroidLibreModule(ReactApplicationContext context) {
         super(context);
     }
-
-    public native byte[] commander1(int i11, int min);
-
-    public native int commander2(int i12, int i13);
-
-    public native int commander3(int i10, int i13);
-
-    public native int getCommanderMin(int i9, int i10);
-
-    public native int getCommanderi11(int i8, int i10);
-
-    public native int getCommanderi3(int i);
-
-    public native int getCommanderi4(int i, int i3);
-
-    public native int getCommanderi5(int i2, int i3);
-
-    public native int getCommanderi6(int i5);
-
-    public native int getCommanderi7(int i6, int i5);
-
-    public native int getCommanderi8(int i4);
-
-    public native int getCommanderi9(int i7);
-
-    public native int getCommanderi10(int i7);
-
-    public native boolean checkForNextStep(int i10, int i9);
 
     /**
      * /**
@@ -154,7 +130,6 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
             if (this.readerTask != null) {
                 this.readerTask.cancel(true);
                 this.readerTask = null;
-                mediaPlayer = null;
                 sendEvent(AndroidLibre_EVENTS.READING_STOPPED, null, null);
                 promise.resolve(true);
             }
@@ -330,13 +305,90 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
                 }
             }
         }
+        public String getSensorID(String tagID) {
+            int [] Is = new int[]{0,0,0,0,0,0};
+            int [] Js = new int[]{0,0,0,0,0,0,0,0,0,0};
+            final String l = "0123456789ACDEFGHJKLMNPQRTUVWXYZ";
+            for(int i=0;i<Is.length;i++) {
+                Is[i] = Integer.parseInt(tagID.substring(((6 - i) * 2)-2, ((6 - i) * 2)), 16) & 255;
+            }
 
+            Js[0] = (Is[0] >> 3);
+            Js[1] = (((Is[0] & 7) << 2) | (Is[1] >> 6));
+            Js[2] = ((Is[1] >> 1) & 31);
+            Js[3] = (((Is[1] & 1) << 4) | (Is[2] >> 4));
+            Js[4] = (((Is[3-1] & 15) << 1) | (Is[3] >> 7));
+            Js[5] = ((Is[3] >> 2) & 31);
+            Js[6] = (((Is[3] & 3) << 3) | (Is[4] >> 5));
+            Js[7] = (Is[4] & 31);
+            Js[8] = (Is[5] >> 3);
+            Js[9] = ((Is[5] << 2) & 31);
+
+            String sensorID = "";
+            for(int i = 0; i < Js.length; i++) {
+                sensorID += l.charAt(Js[i]);
+            }
+            return sensorID;
+        }
+        private String getBlock(NfcV nfcTag, int blockNo) throws java.io.IOException {
+            byte [] cmd = new byte[]{
+                    (byte) 0x20, // Flags
+                    (byte) 0x20, // Command: Read multiple blocks
+                    0,0,0,0,0,0,0,0,
+                    (byte) (blockNo+3) // block (offset)
+            };
+            System.arraycopy(nfcTag.getTag().getId(),0,cmd,2,8);
+            String readPosString = bytesToHex(Arrays.copyOfRange(nfcTag.transceive(cmd),1,9));
+            return readPosString;
+        }
+        private int timeSinceStart(NfcV nfcTag) throws java.io.IOException {
+            int startpos = 584;
+            String block = getBlock(nfcTag, startpos/16);
+            int blockpos = startpos%16;
+            String timehex = block.substring(blockpos+2,blockpos+4)+block.substring(blockpos,blockpos+2);
+            int sTime = Integer.parseInt(timehex, 16);
+//            Log.d(TAG,"Read timehex as "+block.substring(blockpos,blockpos+4)+", time is "+sTime);
+            return sTime;
+        }
+
+        private int getReadPosition(NfcV nfcTag, boolean dense) throws java.io.IOException {
+            String readPosString = getBlock(nfcTag, 0);
+
+            if(dense)
+                return (Integer.parseInt(readPosString.substring(4, 6), 16)-1+16)%16;
+            else
+                return (Integer.parseInt(readPosString.substring(6, 8), 16)-1+32)%32;
+        }
+        private Float processGlucose(int rawVal) {
+            Float processedGlucose = ((rawVal & 0x0FFF) / 6f) - 37f;
+//             processedGlucose = ((processedGlucose*1.088f)-9.2f)/18;
+            // second set of corrections
+            processedGlucose = (processedGlucose*0.6141f)+0.8847f;
+            return processedGlucose;
+        }
+        private int[] getValues(NfcV nfcTag, int valueNo, boolean dense) throws java.io.IOException {
+            int offset = dense ? 8 : 200;
+            int blockNo  = (Math.round(((valueNo*12)+offset)/16));
+            int blockPosition = (Math.round(((valueNo*12)+offset)%16));
+
+            String block = getBlock(nfcTag, blockNo);
+
+            if(blockPosition+10 > 11) {
+                block += getBlock(nfcTag, (blockNo + 1));
+            }
+
+            int rawGlucose = Integer.parseInt(block.substring(blockPosition+2,blockPosition+4)+block.substring(blockPosition,blockPosition+2),16);
+            int rawTemp = Integer.parseInt(block.substring(blockPosition+8,blockPosition+10)+block.substring(blockPosition+6,blockPosition+8),16);
+            return new int[]{rawGlucose,rawTemp};
+        }
         private String connectToTagAndReadData(Tag... params) {
             Tag tag = params[0];
             NfcV nfcvTag = NfcV.get(tag);
 
             addLog("Enter NdefReaderTask: " + nfcvTag.toString());
             addLog("Tag ID: " + tag.getId());
+            String sensorID = getSensorID(bytesToHex(tag.getId()));
+            addLog("Sensor ID: " + sensorID);
             sendEvent(AndroidLibre_EVENTS.NFC_READ_STARTED, null, null);
             try {
                 addLog("Trying to connect to tag");
@@ -355,137 +407,70 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
             readData = "";
             addLog("readData variable intialised with empty string");
 
-            byte[][] bloques = new byte[2510][8];
-            byte[] total = new byte[16001];
-
             try {
-                addLog("Entered readData try block");
-                int totalIdx = 0;
-                addLog("Loop started");
-                int numberOfEmptyByes = 0;
+                int tStart = timeSinceStart(nfcvTag)*60;
+                long curTime = System.currentTimeMillis()/1000;
+                int newreadpos = getReadPosition(nfcvTag, true);
+                int oldreadpos = getReadPosition(nfcvTag, false);
+                byte [] cmd = new byte[]{
+                        (byte) 0x20, // Flags
+                        (byte) 0x20, // Command: Read multiple blocks
+                        0,0,0,0,0,0,0,0,
+                        (byte) (3) // block (offset)
+                };
+                System.arraycopy(nfcvTag.getTag().getId(),0,cmd,2,8);
+                readData = bytesToHex(Arrays.copyOfRange(nfcvTag.transceive(cmd),1,9));
+                addLog("readData: " + readData);
 
-                for (int i = 0; i <= 1200; i++) {
-
-                    if (i > MUST_READ_TO_INDEX && i < startIndex) {
-                        readData = readData + "" + ", ";
-                        continue;
-                    }
-
-                    byte[] oneBlock = new byte[0];
-
-                    while (!this.isCancelled()) {
-                        try {
-                            if (i % 30 == 0) {
-                                int readingIndex = (i/100) + 1;
-                                sendEvent(AndroidLibre_EVENTS.ONE_BLOCK_READ,Integer.toString(readingIndex) , null);
-                            }
-                            oneBlock = readPatchFram(nfcvTag, i * 8, 8);
-                            String currentBytesToHex = bytesToHex(oneBlock);
-//              addLog("At loc " + i + " " + currentBytesToHex);
-                            readData = readData + currentBytesToHex + ", ";
-                            break;
-                        } catch (TagLostException tagLostException) {
-                            Log.e("Android_Libre_Module","connectToTagAndReadData failed", tagLostException);
-                        } catch (IOException e) {
-                            Log.e("Android_Libre_Module","connectToTagAndReadData failed", e);
-                            addLog("Error in transceive " + e.toString());
-                            sendEvent(AndroidLibre_EVENTS.NFC_ERROR_IN_TRANSIEVE, null, null);
-                        }
-                    }
-                    oneBlock = Arrays.copyOfRange(oneBlock, 0, oneBlock.length);
-                    bloques[i] = Arrays.copyOf(oneBlock, 8);
-                    if (checkEmptyBytes(bloques[i])) {
-                        numberOfEmptyByes++;
-                    } else {
-                        numberOfEmptyByes = 0;
-                    }
-
-                    if (numberOfEmptyByes >= 20) {
-                        break;
-                    }
-
-                    for (int idx = 0; idx < bloques[i].length; idx++) {
-                        total[totalIdx++] = bloques[i][idx];
-                    }
+                List<int[]> denseVals = new ArrayList<int[]>();
+                for(int i=newreadpos+16;i>newreadpos;i--) {
+                    int[] tmpVals = getValues(nfcvTag, i%16, true);
+                    denseVals.add(tmpVals);
                 }
+                addLog("Read "+denseVals.size()+" new dense values.");
 
-            } catch (Exception e) {
-                Log.e("AndroidLibreModule","connectToTagAndReadData failed", e);
-                addLog("Error in transieve" + e.toString());
-                sendEvent(AndroidLibre_EVENTS.NFC_ERROR_IN_TRANSIEVE, null, null);
-                return null;
-            }
-            try {
-                nfcvTag.close();
+                List<int[]> sparseVals = new ArrayList<int[]>();
+                for(int i=oldreadpos+32;i>oldreadpos;i--) {
+                    int[] tmpVals = getValues(nfcvTag, i%32, false);
+//                    if(prefsSet && this.lastSparseGVal == tmpVals[0] && this.lastSparseTVal == tmpVals[1]) {
+//                        Log.(TAG, "Cutting sparse reading short with "+sparseVals.size()+" values.");
+//                        break;
+//                    }
+                    // if(lastSparseRecord != null) {
+                    //     Log.d(TAG, "Comparing " + lastSparseRecord[0] + " and " + tmpVals[0] + ", also " + lastSparseRecord[1] + " and " + tmpVals[1] + ".");
+                    //     if (Integer.parseInt(lastSparseRecord[0]) == tmpVals[0] && Integer.parseInt(lastSparseRecord[1]) == tmpVals[1])
+                    //         break;
+                    // }
+                    sparseVals.add(tmpVals);
+                }
+                ArrayList<Float> DenseGlucodeVal = new ArrayList<>();
+                for(int i=0;i<denseVals.size();i++) {
+                    DenseGlucodeVal.add(processGlucose(denseVals.get(i)[0]));
+                }
+                addLog("Dense Glucose Values " + DenseGlucodeVal);
+
+                ArrayList<Float> SparseGlucodeVal = new ArrayList<>();
+                for(int i=0;i<sparseVals.size();i++) {
+                    SparseGlucodeVal.add(processGlucose(sparseVals.get(i)[1]));
+                }
+                addLog("Sparse Glucose Values " + SparseGlucodeVal);
             } catch (IOException e) {
-                Log.e("AndroidLibreModule", "Nfc Close failed", e);
-                addLog(e.toString());
-                addLog(log);
-                return null;
+                addLog("Unable to transceive");
+            } finally {
+                try {
+                    nfcvTag.close();
+                } catch (IOException e) {
+                    addLog("Unable to close techonology");
+                    return null;
+                }
             }
-            addLog("Reading data finished");
-//            playReadingCompleteTone();
-            finalValue = total.clone();
-            return "Done...";
+            addLog("Finish Reading");
+            return "done..";
         }
-
         @Override
         protected String doInBackground(Tag... params) {
             return connectToTagAndReadData(params);
         }
 
-        public byte[] readPatchFram(NfcV nfcvTag, int i, int i2) throws IOException {
-            int i3 = getCommanderi3(i);
-            int i4 = getCommanderi4(i, i3);
-            int i5 = getCommanderi5(i2, i3);
-            int i6 = getCommanderi6(i5);
-            int i7 = getCommanderi7(i6, i5);
-            int i8 = getCommanderi8(i4);
-            byte[] bArr = new byte[i7];
-            int i9 = getCommanderi9(i7);
-            int i10 = getCommanderi10(i7);
-            while (checkForNextStep(i10, i9)) {
-                int i11 = getCommanderi11(i8, i10);
-                int min = getCommanderMin(i9, i10);
-                byte[] tranceiveWithRetries = tranceiveWithRetries(nfcvTag, commander1(i11, min));
-                if (!responseIsSuccess(tranceiveWithRetries) || tranceiveWithRetries.length < (min * 8) + 1) {
-                    return null;
-                }
-                for (int i12 = 0; i12 < min; i12++) {
-                    for (int i13 = 0; i13 < 8; i13++) {
-                        bArr[(i10 * 8) + i13] = tranceiveWithRetries[(i12 * 8) + i13 + 1];
-                    }
-                    i10++;
-                }
-            }
-            return Arrays.copyOfRange(bArr, i3, i5);
-        }
-
-        public boolean responseIsSuccess(byte[] bArr) {
-            return bArr != null && bArr.length > 0 && (bArr[0] & 1) == 0;
-        }
-
-        public byte[] tranceiveWithRetries(NfcV nfcvTag, byte[] bArr) {
-            int i = 0;
-            IOException e = null;
-            byte[] bArr2 = null;
-            while (i < 43 && !this.isCancelled()) {
-                try {
-                    byte[] transceive = nfcvTag.transceive(bArr);
-                    if (responseIsSuccess(transceive)) {
-                        return transceive;
-                    }
-                    i++;
-                    bArr2 = transceive;
-                } catch (IOException e2) {
-                    Log.e("AndroidLibreModule","tranceiveWithRetries failed", e2);
-                    addLog(e2.toString());
-                }
-            }
-            if (e != null) {
-                return null;
-            }
-            return bArr2;
-        }
     }
 }
