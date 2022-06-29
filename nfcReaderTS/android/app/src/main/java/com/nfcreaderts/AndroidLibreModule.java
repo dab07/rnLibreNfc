@@ -25,8 +25,7 @@ import com.facebook.react.bridge.WritableNativeMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
+import java.util.*;
 
 
 enum MESSAGE_TONE_NAME{
@@ -36,17 +35,21 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
 
     final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
     private String log = "";
-    private String readData, buffer;
+    private String readData;
     private int startIndex = 0;
-    private static final int MUST_READ_TO_INDEX = 22;
     private Promise sugarReadingPromise;
     private byte[] finalValue = new byte[9001];
     final public static String CGM_EVENT_NAME = "ABOTT_CGM_EVENT";
     private AsyncTask<Tag, Void, String> readerTask;
     private final String handledIntentFlag = "ALREADY_HANDLED";
-    private Boolean isAudioEnabledFlag = false;
-    public static MediaPlayer mediaPlayer = null;
 
+    public long lastReadTime = 0;
+    public int lastTVal = 0;
+    public int lastDenseGVal = 0;
+    public int lastDenseTVal = 0;
+    public int lastSparseTVal = 0;
+    public int lastSparseGVal = 0;
+    public int lastSensorTime = 0;
     public AndroidLibreModule(ReactApplicationContext context) {
         super(context);
     }
@@ -127,7 +130,6 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
             if (this.readerTask != null) {
                 this.readerTask.cancel(true);
                 this.readerTask = null;
-                mediaPlayer = null;
                 sendEvent(AndroidLibre_EVENTS.READING_STOPPED, null, null);
                 promise.resolve(true);
             }
@@ -323,14 +325,67 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
             Js[9] = ((Is[5] << 2) & 31);
 
             String sensorID = "";
-
             for(int i = 0; i < Js.length; i++) {
                 sensorID += l.charAt(Js[i]);
             }
-
             return sensorID;
         }
+        private String getBlock(NfcV nfcTag, int blockNo) throws java.io.IOException {
+            byte [] cmd = new byte[]{
+                    (byte) 0x20, // Flags
+                    (byte) 0x20, // Command: Read multiple blocks
+                    0,0,0,0,0,0,0,0,
+                    (byte) (blockNo+3) // block (offset)
+            };
+            System.arraycopy(nfcTag.getTag().getId(),0,cmd,2,8);
+            String readPosString = bytesToHex(Arrays.copyOfRange(nfcTag.transceive(cmd),1,9));
+            return readPosString;
+        }
+        private int timeSinceStart(NfcV nfcTag) throws java.io.IOException {
+            int startpos = 584;
+            String block = getBlock(nfcTag, startpos/16);
+            int blockpos = startpos%16;
+            String timehex = block.substring(blockpos+2,blockpos+4)+block.substring(blockpos,blockpos+2);
+            int sTime = Integer.parseInt(timehex, 16);
+//            Log.d(TAG,"Read timehex as "+block.substring(blockpos,blockpos+4)+", time is "+sTime);
+            return sTime;
+        }
 
+        private int getReadPosition(NfcV nfcTag, boolean dense) throws java.io.IOException {
+            String readPosString = getBlock(nfcTag, 0);
+
+            if(dense)
+                return (Integer.parseInt(readPosString.substring(4, 6), 16)-1+16)%16;
+            else
+                return (Integer.parseInt(readPosString.substring(6, 8), 16)-1+32)%32;
+        }
+        private Float processGlucose(int rawVal) {
+            Float processedGlucose = ((rawVal & 0x0FFF) / 6f) - 37f;
+//            processedGlucose = ((processedGlucose*1.088f)-9.2f)/18;
+            // second set of corrections
+//            processedGlucose = (processedGlucose*0.6141f)+0.8847f;
+            return processedGlucose;
+        }
+        private int[] getValues(NfcV nfcTag, int valueNo, boolean dense) throws java.io.IOException {
+            int offset = dense ? 8 : 200;
+            int blockNo  = (Math.round(((valueNo*12)+offset)/16));
+            int blockPosition = (Math.round(((valueNo*12)+offset)%16));
+
+            String block = getBlock(nfcTag, blockNo);
+
+            if(blockPosition+10 > 11) {
+                block += getBlock(nfcTag, (blockNo + 1));
+            }
+
+            int rawGlucose = Integer.parseInt(block.substring(blockPosition+2,blockPosition+4)+block.substring(blockPosition,blockPosition+2),16);
+            int rawTemp = Integer.parseInt(block.substring(blockPosition+8,blockPosition+10)+block.substring(blockPosition+6,blockPosition+8),16);
+
+            addLog("Temperature value read - "+rawTemp+", from hex "+
+                    block.substring(blockPosition+8,blockPosition+10)+block.substring(blockPosition+6,blockPosition+8)+
+                    " - full Hex - "+block);
+
+            return new int[]{rawGlucose,rawTemp};
+        }
         private String connectToTagAndReadData(Tag... params) {
             Tag tag = params[0];
             NfcV nfcvTag = NfcV.get(tag);
@@ -358,6 +413,10 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
             addLog("readData variable intialised with empty string");
 
             try {
+                int tStart = timeSinceStart(nfcvTag)*60;
+                long curTime = System.currentTimeMillis()/1000;
+                int newreadpos = getReadPosition(nfcvTag, true);
+                int oldreadpos = getReadPosition(nfcvTag, false);
                 byte [] cmd = new byte[]{
                         (byte) 0x20, // Flags
                         (byte) 0x20, // Command: Read multiple blocks
@@ -368,7 +427,32 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
                 readData = bytesToHex(Arrays.copyOfRange(nfcvTag.transceive(cmd),1,9));
                 addLog("readData: " + readData);
 
+                List<int[]> denseVals = new ArrayList<int[]>();
+                for(int i=newreadpos+16;i>newreadpos;i--) {
+                    int[] tmpVals = getValues(nfcvTag, i%16, true);
+                    denseVals.add(tmpVals);
+                }
+                addLog("Read "+denseVals.size()+" new dense values.");
 
+                List<int[]> sparseVals = new ArrayList<int[]>();
+                for(int i=oldreadpos+32;i>oldreadpos;i--) {
+                    int[] tmpVals = getValues(nfcvTag, i%32, false);
+//                    if(prefsSet && this.lastSparseGVal == tmpVals[0] && this.lastSparseTVal == tmpVals[1]) {
+//                        Log.(TAG, "Cutting sparse reading short with "+sparseVals.size()+" values.");
+//                        break;
+//                    }
+                    // if(lastSparseRecord != null) {
+                    //     Log.d(TAG, "Comparing " + lastSparseRecord[0] + " and " + tmpVals[0] + ", also " + lastSparseRecord[1] + " and " + tmpVals[1] + ".");
+                    //     if (Integer.parseInt(lastSparseRecord[0]) == tmpVals[0] && Integer.parseInt(lastSparseRecord[1]) == tmpVals[1])
+                    //         break;
+                    // }
+                    sparseVals.add(tmpVals);
+                }
+                ArrayList<Float> GlucodeVal = new ArrayList<>();
+                for(int i=0;i<denseVals.size();i++) {
+                    GlucodeVal.add(processGlucose(denseVals.get(i)[0]));
+                }
+                addLog("Glucose Values " + GlucodeVal.size());
             } catch (IOException e) {
                 addLog("Unable to transceive");
             } finally {
