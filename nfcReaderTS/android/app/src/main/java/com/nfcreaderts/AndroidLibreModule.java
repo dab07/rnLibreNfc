@@ -366,8 +366,7 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
                 };
                 System.arraycopy(nfcvTag.getTag().getId(),0,cmd,2,8);
                 readData = bytesToHex(Arrays.copyOfRange(nfcvTag.transceive(cmd),1,9));
-                int readPos = (Integer.parseInt(readData.substring(4, 6), 16) - 1 + 16) % 16;
-
+                addLog("readData: " + readData);
 
 
             } catch (IOException e) {
@@ -377,8 +376,10 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
                     nfcvTag.close();
                 } catch (IOException e) {
                     addLog("Unable to close techonology");
+                    return null;
                 }
             }
+            addLog("Finish Reading");
             return "done..";
         }
         @Override
