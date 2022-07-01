@@ -24,7 +24,7 @@ import { Colors } from "react-native/Libraries/NewAppScreen";
 import Section from "./components/Section";
 
 const { nfcReaderTS } = NativeModules;
-const { checkForNfcOnDevice, isSensorDetected, startReadingFromLibre } = nfcReaderTS;
+const { checkForNfcOnDevice, isSensorDetected, startReadingFromLibre, stopReadingFromLibre } = nfcReaderTS;
 
 const App = () => {
   const isDarkMode = useColorScheme() === "dark";
@@ -44,8 +44,20 @@ const App = () => {
 
       const reading = await startReadingFromLibre(0);
       console.log("[nfcR handleScanStart]: response", reading);
+
+      const stopreading = await stopReadingFromLibre();
+      console.log("[nfcR handleScanStart] Stopped", stopreading);
     } catch (e) {
       console.error("[nfcR handleScanStart]: error", e);
+    }
+  };
+
+  const activation = async () => {
+    try {
+      // const activateSensor = activateLibreSensor();
+      console.log("WIP");
+    } catch (e) {
+      console.log("[nfcR handleScanStart]: error", e);
     }
   };
 
@@ -61,6 +73,7 @@ const App = () => {
         >
           <Section title="Actions">
             <Button title="Scan" onPress={handleScanStart} />
+            <Button title={"Tap to activate sensor"} onPress={activation} />
           </Section>
         </View>
       </ScrollView>
