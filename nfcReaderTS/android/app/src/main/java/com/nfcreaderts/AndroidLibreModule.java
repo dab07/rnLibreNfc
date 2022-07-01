@@ -361,7 +361,7 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
         }
         private Float processGlucose(int rawVal) {
             Float processedGlucose = ((rawVal & 0x0FFF) / 6f) - 37f;
-//             processedGlucose = ((processedGlucose*1.088f)-9.2f)/18;
+//            processedGlucose = ((processedGlucose*1.088f)-9.2f)/18;
             // second set of corrections
             processedGlucose = (processedGlucose*0.6141f)+0.8847f;
             return processedGlucose;
@@ -422,12 +422,13 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
                 readData = bytesToHex(Arrays.copyOfRange(nfcvTag.transceive(cmd),1,9));
                 addLog("readData: " + readData);
 
-                List<int[]> denseVals = new ArrayList<int[]>();
+                List<int[]> denseVals = new ArrayList<>();
                 for(int i=newreadpos+16;i>newreadpos;i--) {
                     int[] tmpVals = getValues(nfcvTag, i%16, true);
                     denseVals.add(tmpVals);
                 }
                 addLog("Read "+denseVals.size()+" new dense values.");
+
 
                 List<int[]> sparseVals = new ArrayList<int[]>();
                 for(int i=oldreadpos+32;i>oldreadpos;i--) {
@@ -453,7 +454,7 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
                 for(int i=0;i<sparseVals.size();i++) {
                     SparseGlucodeVal.add(processGlucose(sparseVals.get(i)[1]));
                 }
-                addLog("Sparse Glucose Values " + SparseGlucodeVal);
+//                addLog("Sparse Glucose Values " + SparseGlucodeVal);
             } catch (IOException e) {
                 addLog("Unable to transceive");
             } finally {
