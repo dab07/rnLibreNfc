@@ -38,6 +38,7 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
     private String readData;
     private int startIndex = 0;
     private Promise sugarReadingPromise;
+    private Promise activationPromise;
     private byte[] finalValue = new byte[9001];
     final public static String CGM_EVENT_NAME = "ABOTT_CGM_EVENT";
     private AsyncTask<Tag, Void, String> readerTask;
@@ -97,7 +98,55 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
         return "nfcReaderTS";
     }
 
+    @ReactMethod
+    public void writeLibre (final Promise activate) {
+        activationPromise = activate;
+        if(this.readerTask != null){
+            if(this.readerTask.cancel(true)){
+                this.readerTask = null;
+            }
+        }
+        try {
+            addLog("");
+            Intent receivedIntnent = getCurrentActivity().getIntent();
+            String action = receivedIntnent.getAction();
+            if (NfcAdapter.ACTION_TECH_DISCOVERED.equals(action)) {
+                Tag tag = receivedIntnent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
+                NfcV nfcvTag = NfcV.get(tag);
+                byte[] blockWrite = new byte[4];
+                byte[] cmd = new byte[]{
+                        (byte) 0x20,
+                        (byte) 0x21,
+                        (byte) 0x00,
+                        (byte) 0x00,
+                        (byte) 0x00,
+                        (byte) 0x00,
+                        (byte) 0x00,
+                        (byte) 0x00,
+                        (byte) 0x00,
+                        (byte) 0x00,
+                        (byte) 0x00, //offest
+                        blockWrite[0],
+                        blockWrite[1],
+                        blockWrite[2],
+                        blockWrite[3],
+                };
+                System.arraycopy(tag.getId(),0,cmd,2,8);
+                try {
+                    nfcvTag.connect();
+                    byte[] response = nfcvTag.transceive(cmd);
+                    if (response[0] == (byte) 0) {
+                        addLog("successfully wrote a block to tag");
+                    }
+                } catch (Exception e) {
+                    addLog("[writeLibre]: Unable to connect tag");
+                }
+            }
 
+        } catch (Exception e) {
+            addLog("[writeLibre]: Unable to get intent");
+        }
+    }
     @ReactMethod
     public void startReadingFromLibre(int startIndex, final Promise sugarReading) {
         this.startIndex = startIndex;
