@@ -9,6 +9,7 @@ import android.nfc.NfcManager;
 import android.nfc.Tag;
 import android.nfc.TagLostException;
 import android.nfc.tech.NfcV;
+import android.nfc.tech.NdefFormatable;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
@@ -99,54 +100,52 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void writeLibre (final Promise activate) {
-        activationPromise = activate;
-        if(this.readerTask != null){
-            if(this.readerTask.cancel(true)){
+    public byte[] activateCGM (final Promise promise) {
+        activationPromise = promise;
+        if (this.readerTask != null) {
+            if (this.readerTask.cancel(true)) {
                 this.readerTask = null;
             }
         }
-        try {
-            addLog("");
-            Intent receivedIntnent = getCurrentActivity().getIntent();
-            String action = receivedIntnent.getAction();
-            if (NfcAdapter.ACTION_TECH_DISCOVERED.equals(action)) {
-                Tag tag = receivedIntnent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
-                NfcV nfcvTag = NfcV.get(tag);
-                byte[] blockWrite = new byte[4];
-                byte[] cmd = new byte[]{
-                        (byte) 0x20,
-                        (byte) 0x21,
-                        (byte) 0x00,
-                        (byte) 0x00,
-                        (byte) 0x00,
-                        (byte) 0x00,
-                        (byte) 0x00,
-                        (byte) 0x00,
-                        (byte) 0x00,
-                        (byte) 0x00,
-                        (byte) 0x00, //offest
-                        blockWrite[0],
-                        blockWrite[1],
-                        blockWrite[2],
-                        blockWrite[3],
-                };
-                System.arraycopy(tag.getId(),0,cmd,2,8);
+        byte[] activateCMD = new byte[]{
+                (byte) 0x02,
+                (byte) 0xA0,
+                (byte) 0x07,
+                (byte) 0XC2,
+                (byte) 0xAD,
+                (byte) 0x75,
+                (byte) 0x21
+        };
+        Intent intent = getCurrentActivity().getIntent();
+        String action = intent.getAction();
+        if (NfcAdapter.ACTION_TECH_DISCOVERED.equals(action)) {
+            Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
+            NfcV nfctag = NfcV.get(tag);
+            addLog("[Activation]: Start connecting and activating sensor");
+            while (true) {
                 try {
-                    nfcvTag.connect();
-                    byte[] response = nfcvTag.transceive(cmd);
-                    if (response[0] == (byte) 0) {
-                        addLog("successfully wrote a block to tag");
-                    }
+                    nfctag.connect();
+                    addLog("[Activation]: Sensor connected");
+                    byte[] activateResponse = nfctag.transceive(activateCMD);
+                    nfctag.close();
+                    addLog("Sensor is activated");
+                    return activateResponse;
                 } catch (Exception e) {
-                    addLog("[writeLibre]: Unable to connect tag");
+
                 }
             }
-
-        } catch (Exception e) {
-            addLog("[writeLibre]: Unable to get intent");
+        } else {
+            addLog("App Was not launched with Tech Discovered intent");
+            WritableNativeMap nfcError = new WritableNativeMap();
+            nfcError.putString("errorCode", AndroidLibre_EVENTS.NFC_ERROR_NO_TAG_DETECTED.toString());
+            nfcError.putString("error", AndroidLibre_EVENTS.NFC_ERROR_NO_TAG_DETECTED.toString());
+            nfcError.putString("logs", log);
+            Exception tagNotDetected = new Exception(AndroidLibre_EVENTS.NFC_ERROR_NO_TAG_DETECTED.toString());
+            sugarReadingPromise.reject(tagNotDetected, nfcError);
+            return new byte[0];
         }
     }
+
     @ReactMethod
     public void startReadingFromLibre(int startIndex, final Promise sugarReading) {
         this.startIndex = startIndex;
@@ -410,7 +409,7 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
         }
         private Float processGlucose(int rawVal) {
             Float processedGlucose = ((rawVal & 0x0FFF) / 6f) - 37f;
-//            processedGlucose = ((processedGlucose*1.088f)-9.2f)/18;
+            processedGlucose = ((processedGlucose*1.088f)-9.2f)/18;
             // second set of corrections
             processedGlucose = (processedGlucose*0.6141f)+0.8847f;
             return processedGlucose;
@@ -493,16 +492,7 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
                     // }
                     sparseVals.add(tmpVals);
                 }
-                ArrayList<Float> DenseGlucodeVal = new ArrayList<>();
-                for(int i=0;i<denseVals.size();i++) {
-                    DenseGlucodeVal.add(processGlucose(denseVals.get(i)[0]));
-                }
-                addLog("Dense Glucose Values " + DenseGlucodeVal);
 
-                ArrayList<Float> SparseGlucodeVal = new ArrayList<>();
-                for(int i=0;i<sparseVals.size();i++) {
-                    SparseGlucodeVal.add(processGlucose(sparseVals.get(i)[1]));
-                }
 //                addLog("Sparse Glucose Values " + SparseGlucodeVal);
             } catch (IOException e) {
                 addLog("Unable to transceive");
@@ -511,11 +501,10 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
                     nfcvTag.close();
                 } catch (IOException e) {
                     addLog("Unable to close techonology");
-                    return null;
                 }
             }
             addLog("Finish Reading");
-            return "done..";
+            return "Done ";
         }
         @Override
         protected String doInBackground(Tag... params) {
