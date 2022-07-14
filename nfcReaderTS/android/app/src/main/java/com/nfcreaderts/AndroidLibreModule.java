@@ -9,6 +9,7 @@ import android.nfc.NfcManager;
 import android.nfc.Tag;
 import android.nfc.TagLostException;
 import android.nfc.tech.NfcV;
+import android.nfc.tech.NdefFormatable;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
@@ -38,6 +39,7 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
     private String readData;
     private int startIndex = 0;
     private Promise sugarReadingPromise;
+    private Promise activationPromise;
     private byte[] finalValue = new byte[9001];
     final public static String CGM_EVENT_NAME = "ABOTT_CGM_EVENT";
     private AsyncTask<Tag, Void, String> readerTask;
@@ -97,6 +99,52 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
         return "nfcReaderTS";
     }
 
+    @ReactMethod
+    public byte[] activateCGM (final Promise promise) {
+        activationPromise = promise;
+        if (this.readerTask != null) {
+            if (this.readerTask.cancel(true)) {
+                this.readerTask = null;
+            }
+        }
+        byte[] activateCMD = new byte[]{
+                (byte) 0x02,
+                (byte) 0xA0,
+                (byte) 0x07,
+                (byte) 0XC2,
+                (byte) 0xAD,
+                (byte) 0x75,
+                (byte) 0x21
+        };
+        Intent intent = getCurrentActivity().getIntent();
+        String action = intent.getAction();
+        if (NfcAdapter.ACTION_TECH_DISCOVERED.equals(action)) {
+            Tag tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
+            NfcV nfctag = NfcV.get(tag);
+            addLog("[Activation]: Start connecting and activating sensor");
+            while (true) {
+                try {
+                    nfctag.connect();
+                    addLog("[Activation]: Sensor connected");
+                    byte[] activateResponse = nfctag.transceive(activateCMD);
+                    nfctag.close();
+                    addLog("Sensor is activated");
+                    return activateResponse;
+                } catch (Exception e) {
+
+                }
+            }
+        } else {
+            addLog("App Was not launched with Tech Discovered intent");
+            WritableNativeMap nfcError = new WritableNativeMap();
+            nfcError.putString("errorCode", AndroidLibre_EVENTS.NFC_ERROR_NO_TAG_DETECTED.toString());
+            nfcError.putString("error", AndroidLibre_EVENTS.NFC_ERROR_NO_TAG_DETECTED.toString());
+            nfcError.putString("logs", log);
+            Exception tagNotDetected = new Exception(AndroidLibre_EVENTS.NFC_ERROR_NO_TAG_DETECTED.toString());
+            sugarReadingPromise.reject(tagNotDetected, nfcError);
+            return new byte[0];
+        }
+    }
 
     @ReactMethod
     public void startReadingFromLibre(int startIndex, final Promise sugarReading) {
@@ -361,7 +409,7 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
         }
         private Float processGlucose(int rawVal) {
             Float processedGlucose = ((rawVal & 0x0FFF) / 6f) - 37f;
-//            processedGlucose = ((processedGlucose*1.088f)-9.2f)/18;
+            processedGlucose = ((processedGlucose*1.088f)-9.2f)/18;
             // second set of corrections
             processedGlucose = (processedGlucose*0.6141f)+0.8847f;
             return processedGlucose;
@@ -444,16 +492,7 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
                     // }
                     sparseVals.add(tmpVals);
                 }
-                ArrayList<Float> DenseGlucodeVal = new ArrayList<>();
-                for(int i=0;i<denseVals.size();i++) {
-                    DenseGlucodeVal.add(processGlucose(denseVals.get(i)[0]));
-                }
-                addLog("Dense Glucose Values " + DenseGlucodeVal);
 
-                ArrayList<Float> SparseGlucodeVal = new ArrayList<>();
-                for(int i=0;i<sparseVals.size();i++) {
-                    SparseGlucodeVal.add(processGlucose(sparseVals.get(i)[1]));
-                }
 //                addLog("Sparse Glucose Values " + SparseGlucodeVal);
             } catch (IOException e) {
                 addLog("Unable to transceive");
@@ -462,11 +501,10 @@ public class AndroidLibreModule extends ReactContextBaseJavaModule {
                     nfcvTag.close();
                 } catch (IOException e) {
                     addLog("Unable to close techonology");
-                    return null;
                 }
             }
             addLog("Finish Reading");
-            return "done..";
+            return "Done ";
         }
         @Override
         protected String doInBackground(Tag... params) {
