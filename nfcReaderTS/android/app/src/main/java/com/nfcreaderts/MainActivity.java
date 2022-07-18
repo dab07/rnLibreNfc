@@ -7,14 +7,31 @@ import android.nfc.NfcAdapter;
 import android.nfc.Tag;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
 import android.widget.Toast;
 import com.facebook.react.ReactActivity;
 import com.facebook.react.ReactActivityDelegate;
 import com.facebook.react.ReactRootView;
 import android.content.IntentFilter;
+import android.app.Activity;
+
+import com.google.android.gms.fitness.FitnessOptions;
+import com.google.android.gms.fitness.data.DataType;
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.fitness.Fitness;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.fitness.data.DataSet;
+import com.google.android.gms.fitness.data.Field;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import android.view.MenuItem;
+import androidx.annotation.NonNull;
+
 public class MainActivity extends ReactActivity {
 
     final static String TAG = "nfcReaderTS";
+    private static final int REQUEST_OAUTH_REQUEST_CODE = 0x1001;
     NfcAdapter nfcAdapter;
     PendingIntent pendingIntent;
     private static final int PENDING_INTENT_TECH_DISCOVERED = 1;
@@ -44,8 +61,79 @@ public class MainActivity extends ReactActivity {
         }
 //        pendingIntent = PendingIntent.getActivity(this, 0, new Intent(this, this.getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), PendingIntent.FLAG_MUTABLE);
 
+        // for STEP COUNTER
+        FitnessOptions fitnessOptions =
+                FitnessOptions.builder()
+                        .addDataType(DataType.TYPE_STEP_COUNT_CUMULATIVE)
+                        .addDataType(DataType.TYPE_STEP_COUNT_DELTA)
+                        .build();
+        if (!GoogleSignIn.hasPermissions(GoogleSignIn.getLastSignedInAccount(this), fitnessOptions)) {
+            GoogleSignIn.requestPermissions(
+                    this,
+                    REQUEST_OAUTH_REQUEST_CODE,
+                    GoogleSignIn.getLastSignedInAccount(this),
+                    fitnessOptions);
+        } else {
+            subscribe();
+        }
 
     }
+    public void subscribe() {
+        // To create a subscription, invoke the Recording API. As soon as the subscription is
+        // active, fitness data will start recording.
+        Fitness.getRecordingClient(this, GoogleSignIn.getLastSignedInAccount(this))
+                .subscribe(DataType.TYPE_STEP_COUNT_CUMULATIVE)
+                .addOnCompleteListener(
+                        new OnCompleteListener<Void>() {
+                            @Override
+                            public void onComplete(@NonNull Task<Void> task) {
+                                if (task.isSuccessful()) {
+                                    Log.i(TAG, "Successfully subscribed!");
+                                } else {
+                                    Log.w(TAG, "There was a problem subscribing.", task.getException());
+                                }
+                            }
+                        });
+    }
+    private void readData() {
+        Fitness.getHistoryClient(this, GoogleSignIn.getLastSignedInAccount(this))
+                .readDailyTotal(DataType.TYPE_STEP_COUNT_DELTA)
+                .addOnSuccessListener(
+                        new OnSuccessListener<DataSet>() {
+                            @Override
+                            public void onSuccess(DataSet dataSet) {
+                                long total =
+                                        dataSet.isEmpty()
+                                                ? 0
+                                                : dataSet.getDataPoints().get(0).getValue(Field.FIELD_STEPS).asInt();
+                                Log.i(TAG, "Total steps: " + total);
+                            }
+                        })
+                .addOnFailureListener(
+                        new OnFailureListener() {
+                            @Override
+                            public void onFailure(@NonNull Exception e) {
+                                Log.w(TAG, "There was a problem getting the step count.", e);
+                            }
+                        });
+    }
+//    @Override
+//    public boolean onCreateOptionsMenu(Menu menu) {
+//        // Inflate the main; this adds items to the action bar if it is present.
+//        getMenuInflater().inflate(R.menu.main, menu);
+//        return true;
+//    }
+
+//    @Override
+//    public boolean onOptionsItemSelected(MenuItem item) {
+//        int id = item.getItemId();
+//        if (id == R.id.action_read_data) {
+//            readData();
+//            return true;
+//        }
+//        return super.onOptionsItemSelected(item);
+//    }
+
 
 
     @Override
